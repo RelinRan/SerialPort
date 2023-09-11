@@ -3,11 +3,13 @@ Android 串口通讯 arm64-v8a、armeabi-v7a、x86、x86_64
 ###### AAR
 |名称|操作|
 |-|-|
-|serial.jar|[下载](https://github.com/RelinRan/SerialPort/blob/master/libs/serial.jar)|
-|arm64-v8a|[下载](https://github.com/RelinRan/SerialPort/blob/master/libs/arm64-v8a)|
-|armeabi-v7a|[下载](https://github.com/RelinRan/SerialPort/blob/master/libs/armeabi-v7a)|
-|x86|[下载](https://github.com/RelinRan/SerialPort/blob/master/libs/x86)|
-|x86_64|[下载](https://github.com/RelinRan/SerialPort/blob/master/libs/x86_64)|
+|serial.jar|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/serial.jar)|
+|arm64-v8a|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/arm64-v8a/libserial.so)|
+|armeabi-v7a|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/armeabi-v7a/libserial.so)|
+|x86|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/x86/libserial.so)|
+|x86_64|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/x86_64/libserial.so)|
+|arm-zip|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/arm.zip)|
+|x86-zip|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/x86.zip)|
 
 ###### Maven
 1.build.grade | setting.grade
