@@ -25,6 +25,25 @@ dependencies {
 	implementation 'com.github.RelinRan:SerialPort:2023.9.11.6'
 }
 ```
+3.CPU架构
+```
+    defaultConfig {
+        ndk {
+            abiFilters 'arm64-v8a','armeabi-v7a','x86','x86_64'
+        }
+    }
+```
+###### 文件依赖
+下载的jar放入libs文件夹，so文件放入jniLibs文件夹
+```
+android {
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+}
+```
 ###### 权限
 ```
 <uses-permission android:name="android.permission.INTERNET" />
