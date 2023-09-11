@@ -4,12 +4,11 @@ plugins {
 
 android {
     namespace 'android.serial.port.api'
-    compileSdk 33
+    compileSdk 31
 
     defaultConfig {
-//        applicationId "android.serial.port.api"
         minSdk 21
-        targetSdk 33
+        targetSdk 31
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
