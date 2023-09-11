@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 
-import androidx.annotation.NonNull;
 
 public class SerialChannel extends Handler {
 
@@ -29,7 +28,7 @@ public class SerialChannel extends Handler {
     }
 
     @Override
-    public void handleMessage(@NonNull Message msg) {
+    public void handleMessage(Message msg) {
         super.handleMessage(msg);
         int what = msg.what;
         byte[] data = msg.getData().getByteArray("data");

@@ -22,7 +22,7 @@ repositories {
 2./app/build.grade
 ```
 dependencies {
-	implementation 'com.github.RelinRan:SerialPort:2023.9.11.5'
+	implementation 'com.github.RelinRan:SerialPort:2023.9.11.6'
 }
 ```
 ###### 权限
