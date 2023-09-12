@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">串口代理</string>
-    <string name="notif_ready">等待远程连接</string>
-    <string name="notif_connected">远程空闲</string>
-    <string name="notif_opened">远程连接到串行端口</string>
-    <string name="notif_crash">失败，请检查您的参数</string>
-    <string name="su_failed">更改设备权限失败</string>
-</resources>

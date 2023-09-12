@@ -1,6 +1,9 @@
-###### Serial Port
+##### Serial Port
+
 Android 串口通讯 arm64-v8a、armeabi-v7a、x86、x86_64
-###### AAR
+
+##### AAR
+
 |名称|操作|
 |-|-|
 |serial.jar|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/serial.jar)|
@@ -11,30 +14,39 @@ Android 串口通讯 arm64-v8a、armeabi-v7a、x86、x86_64
 |arm-zip|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/arm.zip)|
 |x86-zip|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/x86.zip)|
 
-###### Maven
+##### Maven
+
 1.build.grade | setting.grade
+
 ```
 repositories {
 	...
 	maven { url 'https://jitpack.io' }
 }
 ```
+
 2./app/build.grade
+
 ```
 dependencies {
-	implementation 'com.github.RelinRan:SerialPort:2023.9.11.6'
+	implementation 'com.github.RelinRan:SerialPort:2023.9.12.1'
 }
 ```
+
 3.CPU架构
+
 ```
-    defaultConfig {
-        ndk {
-            abiFilters 'arm64-v8a','armeabi-v7a','x86','x86_64'
-        }
+defaultConfig {
+   ndk {
+       abiFilters 'arm64-v8a','armeabi-v7a','x86','x86_64'
     }
+}
 ```
-###### 文件依赖
+
+##### 文件依赖
+
 下载的jar放入libs文件夹，so文件放入jniLibs文件夹
+
 ```
 android {
     sourceSets {
@@ -44,17 +56,38 @@ android {
     }
 }
 ```
-###### 权限
+
+##### 权限
+
 ```
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 ```
-###### 通讯
+
+##### 路径
+
+所有驱动路径
+
 ```
-//初始化串口
+ SerialPortFinder finder = new SerialPortFinder();
+ String[] paths = finder.getAllDevicesPath();
+ for (String path : paths) {
+     Log.i("SerialPortFinder","path:"+path);
+ }
+```
+
+##### 通讯
+
+初始化串口
+
+```
 Serial serial = new Serial("/dev/ttyMSM2",30001,SerialMode.RDWR);
-//设置监听
+```
+
+设置监听
+
+```
 serial.setOnSerialListener(new OnSerialListener() {
 
     @Override
@@ -68,16 +101,71 @@ serial.setOnSerialListener(new OnSerialListener() {
     }
     
 });
-//打开串口
+```
+
+打开串口
+
+```
 serial.open();
-//关闭串口
+```
+
+关闭串口
+
+```
 serial.close();
 ```
-###### 代理
+
+##### 代理
+
+服务配置
+
 ```
-//开启代理（显示通知栏）
-SercdService.start(context,"/dev/ttyMSM2","127.0.0.1",30001);
-//关闭代理
-SercdService.stop(context);
+<service
+    android:name="android.serial.port.api.SercdService"
+    android:directBootAware="true"
+    android:enabled="true" />
+```
+
+初始化
+
+```
+Sercd sercd = new Sercd(getContext());
+```
+
+网络接口列表 + 端口
+
+```
+String netInterface = "";
+int port = 30001;
+Map<String, String> map = sercd.feedNetworkInterfacesList();
+for (String key:map.keySet()){
+    //wifi是wlan0
+    if (key.equals("eth0")){
+        netInterface = map.get(key);
+    }
+}
+```
+
+设置监听
+
+```
+sercd.setOnSercdListener(new OnSercdListener() {
+    @Override
+    public void onSercdStateChange(ProxyState proxyState) {
+        System.out.println("proxyState:"+proxyState);
+    }
+});
+```
+
+开始代理
+
+```
+sercd.start("/dev/ttyMSM2",netInterface,port);
+```
+
+关闭代理
+
+```
+sercd.stop();
 ```
 
