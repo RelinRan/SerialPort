@@ -2,7 +2,6 @@ package android.serial.port.api;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
 
 /**
  * 字节码操作
