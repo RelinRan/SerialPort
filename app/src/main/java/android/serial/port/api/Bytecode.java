@@ -9,39 +9,6 @@ import java.util.Arrays;
  */
 public class Bytecode {
 
-    public static void main(String[] args) {
-        Bytecode bytecode = new Bytecode();
-
-        byte b = 0b00001111;
-
-        boolean[] booleans = bytecode.toBooleans(b);
-        System.out.println("booleans:" + Arrays.toString(booleans));//00001111
-
-        System.out.println("Byte转十六进制:" + bytecode.toHex(b));//0F
-        System.out.println("Byte转十进制:" + bytecode.toDec(b));//15
-        System.out.println("Byte转八进制:" + bytecode.toOct(b));//017
-        System.out.println("Byte转二进制:" + bytecode.toBin(b));//00001111
-
-        float floatValue = 99.99f;
-        byte[] data = bytecode.toBytes(floatValue);
-
-        String hexString = bytecode.toHex(data);
-        System.out.println("Byte数组转十六进制字符串:" + hexString);//E1 FA C7 42
-        byte[] value = bytecode.toBytes(hexString);
-        System.out.println("十六进制String转Byte数组:" + Arrays.toString(value));//[-31, -6, -57, 66]
-
-        System.out.println("Byte数组转Float:" + bytecode.toFloat(new byte[]{data[0],data[1],data[2],data[3]}));//99.99
-
-        short shortValue = 33;
-        data = bytecode.toBytes(shortValue);
-        System.out.println("Byte数组转Short:" + bytecode.toShort(new byte[]{data[0],data[1]}));//33
-
-        int intValue = 100;
-        data = bytecode.toBytes(intValue);
-        System.out.println("Byte数组转Int:" + bytecode.toInt(new byte[]{data[0],data[1],data[2],data[3]}));//100
-
-    }
-
     /**
      * byte转16进制字符串
      *
