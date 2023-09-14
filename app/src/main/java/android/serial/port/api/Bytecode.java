@@ -2,11 +2,106 @@ package android.serial.port.api;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 /**
  * 字节码操作
  */
 public class Bytecode {
+
+    public static void main(String[] args) {
+        Bytecode bytecode = new Bytecode();
+
+        byte b = 0b00001111;
+
+        boolean[] booleans = bytecode.toBooleans(b);
+        System.out.println("booleans:" + Arrays.toString(booleans));//00001111
+
+        System.out.println("Byte转十六进制:" + bytecode.toHex(b));//0F
+        System.out.println("Byte转十进制:" + bytecode.toDec(b));//15
+        System.out.println("Byte转八进制:" + bytecode.toOct(b));//017
+        System.out.println("Byte转二进制:" + bytecode.toBin(b));//00001111
+
+        float floatValue = 99.99f;
+        byte[] data = bytecode.toBytes(floatValue);
+
+        String hexString = bytecode.toHex(data);
+        System.out.println("Byte数组转十六进制字符串:" + hexString);//E1 FA C7 42
+        byte[] value = bytecode.toBytes(hexString);
+        System.out.println("十六进制String转Byte数组:" + Arrays.toString(value));//[-31, -6, -57, 66]
+
+        System.out.println("Byte数组转Float:" + bytecode.toFloat(new byte[]{data[0],data[1],data[2],data[3]}));//99.99
+
+        short shortValue = 33;
+        data = bytecode.toBytes(shortValue);
+        System.out.println("Byte数组转Short:" + bytecode.toShort(new byte[]{data[0],data[1]}));//33
+
+        int intValue = 100;
+        data = bytecode.toBytes(intValue);
+        System.out.println("Byte数组转Int:" + bytecode.toInt(new byte[]{data[0],data[1],data[2],data[3]}));//100
+
+    }
+
+    /**
+     * byte转16进制字符串
+     *
+     * @param value 字节
+     * @return
+     */
+    public String toHex(byte value) {
+        return String.format("%02X", value);
+    }
+
+    /**
+     * byte转十进制字符串
+     *
+     * @param value byte
+     * @return
+     */
+    public int toDec(byte value) {
+        return value;
+    }
+
+    /**
+     * byte转八进制字符串
+     *
+     * @param value 字节
+     * @return
+     */
+    public String toOct(byte value) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 2; i >= 0; i--) {
+            int octalDigit = (value >> (i * 3)) & 0b111;
+            builder.append(octalDigit);
+        }
+        return builder.toString();
+    }
+
+    /**
+     * byte转二进制字符串
+     *
+     * @param value 字节
+     * @return
+     */
+    public String toBin(byte value) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            boolean bit = ((value >> (7 - i)) & 0x01) != 0;
+            builder.append(bit ? 1 : 0);
+        }
+        return builder.toString();
+    }
+
+    /**
+     * 将进制字符串转换为字节
+     *
+     * @param radix 基数,例如16：十六进制，8：八进制
+     * @param value 对应字符
+     * @return
+     */
+    public byte toByte(int radix, String value) {
+        return (byte) Integer.parseInt(value, radix);
+    }
 
     /**
      * 字节转16进制字符串
@@ -16,8 +111,8 @@ public class Bytecode {
      */
     public String toHex(byte[] data) {
         StringBuilder builder = new StringBuilder();
-        for (byte b : data) {
-            String hex = String.format("%02X", b);//按照两位十六进制格式化
+        for (byte bt : data) {
+            String hex = String.format("%02X", bt);//按照两位十六进制格式化
             builder.append(hex).append(" ");
         }
         return builder.toString().toUpperCase();
@@ -36,6 +131,16 @@ public class Bytecode {
             bytes[i / 2] = (byte) Integer.parseInt(hexString.substring(i, i + 2), 16);
         }
         return bytes;
+    }
+
+    /**
+     * int转1个字节
+     *
+     * @param value 值
+     * @return
+     */
+    public byte toByte(int value) {
+        return (byte) value;
     }
 
     /**
@@ -62,6 +167,27 @@ public class Bytecode {
     }
 
     /**
+     * float转4个字节数组
+     *
+     * @param value 整数
+     * @return
+     */
+    public byte[] toBytes(float value) {
+        return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putFloat(value).array();
+    }
+
+    /**
+     * 字节转4个字节的float
+     *
+     * @param data 字节
+     * @return
+     */
+    public float toFloat(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+        return buffer.getFloat();
+    }
+
+    /**
      * short转2个字节数组
      *
      * @param value 整数
@@ -73,6 +199,42 @@ public class Bytecode {
     }
 
     /**
+     * 数字字符转short
+     *
+     * @param value    数字字符
+     * @param multiple 放大倍数
+     * @return
+     */
+    public short toShort(String value, int multiple) {
+        if (value.contains(".")) {
+            return (short) (Float.parseFloat(value) * multiple);
+        }
+        return (short) (Short.parseShort(value) * multiple);
+    }
+
+    /**
+     * 数字字符转1个字节
+     *
+     * @param value    数字字符
+     * @param multiple 放大倍数
+     * @return
+     */
+    public byte toByte(String value, int multiple) {
+        return toByte(toShort(value, multiple));
+    }
+
+    /**
+     * 数字字符转2个字节
+     *
+     * @param value    数字字符
+     * @param multiple 放大倍数
+     * @return
+     */
+    public byte[] toBytes(String value, int multiple) {
+        return toBytes(toShort(value, multiple));
+    }
+
+    /**
      * 字节转2个字节的short
      *
      * @param data  字节
@@ -81,6 +243,27 @@ public class Bytecode {
      */
     public short toShort(byte[] data, ByteOrder order) {
         ByteBuffer buffer = ByteBuffer.wrap(data).order(order);
+        return buffer.getShort();
+    }
+
+    /**
+     * short转2个字节数组
+     *
+     * @param value 整数
+     * @return
+     */
+    public byte[] toBytes(short value) {
+        return ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(value).array();
+    }
+
+    /**
+     * 字节转2个字节的short
+     *
+     * @param data 字节
+     * @return
+     */
+    public short toShort(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getShort();
     }
 
@@ -108,6 +291,27 @@ public class Bytecode {
     }
 
     /**
+     * int转4个字节数组
+     *
+     * @param value 整数
+     * @return
+     */
+    public byte[] toBytes(int value) {
+        return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(value).array();
+    }
+
+    /**
+     * 字节转4个字节的int
+     *
+     * @param data 字节
+     * @return
+     */
+    public int toInt(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+        return buffer.getInt();
+    }
+
+    /**
      * double转8个字节数组
      *
      * @param value 整数
@@ -117,6 +321,7 @@ public class Bytecode {
     public byte[] toBytes(double value, ByteOrder order) {
         return ByteBuffer.allocate(8).order(order).putDouble(value).array();
     }
+
 
     /**
      * 字节转8个字节的double
@@ -129,5 +334,128 @@ public class Bytecode {
         ByteBuffer buffer = ByteBuffer.wrap(data).order(order);
         return buffer.getDouble();
     }
-    
+
+    /**
+     * double转8个字节数组
+     *
+     * @param value 整数
+     * @return
+     */
+    public byte[] toBytes(double value) {
+        return ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putDouble(value).array();
+    }
+
+    /**
+     * 字节转8个字节的double
+     *
+     * @param data 字节
+     * @return
+     */
+    public double toDouble(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
+        return buffer.getDouble();
+    }
+
+    /**
+     * byte每个bit是否是1,例如:0b01100101 -> [true, false, true, false, false, true, true, false]
+     *
+     * @param values
+     * @return
+     */
+    public byte toByte(boolean... values) {
+        int length = values.length;
+        int len = length > 8 ? 8 : length;
+        byte value = 0;
+        if (len > 0) {
+            for (int i = 0; i < len; i++) {
+                if (values[i]) {
+                    value |= (1 << (7 - i));
+                }
+            }
+        }
+        return value;
+    }
+
+    /**
+     * byte每个bit是否是1,例如:0b01100101 -> [true, false, true, false, false, true, true, false]
+     *
+     * @param value byte
+     * @return
+     */
+    public boolean[] toBooleans(byte value) {
+        boolean[] bits = new boolean[8];
+        for (int i = 0; i < 8; i++) {
+            bits[i] = ((value >> (7 - i)) & 0x01) != 0;
+        }
+        return bits;
+    }
+
+    /**
+     * byte每个bit是否是1,例如:0b01100101 -> [true, false, true, false, false, true, true, false]
+     *
+     * @param value byte
+     * @param bits  数组结果，例如:0b01100101 -> [true, false, true, false, false, true, true, false]
+     */
+    public void toBooleans(byte value, boolean[] bits) {
+        if (bits == null) {
+            return;
+        }
+        int length = bits.length;
+        length = length > 8 ? 8 : length;
+        if (length == 0) {
+            return;
+        }
+        for (int i = 0; i < length; i++) {
+            bits[i] = ((value >> (7 - i)) & 0x01) != 0;
+        }
+    }
+
+    /**
+     * 字节数字总和的结果字节
+     *
+     * @param data 字节
+     * @return
+     */
+    public byte sum(byte[] data) {
+        int sum = 0;
+        for (int i = 0; i < data.length; i++) {
+            sum += data[i] & 0xFF;
+            sum &= 0xFF;//溢出则循环计数
+        }
+        return (byte) sum;
+    }
+
+    /**
+     * 字节数字总和的结果字节
+     *
+     * @param data   字节
+     * @param length 长度
+     * @return
+     */
+    public byte sum(byte[] data, int length) {
+        int sum = 0;
+        for (int i = 0; i < length; i++) {
+            sum += data[i] & 0xFF;
+            sum &= 0xFF;//溢出则循环计数
+        }
+        return (byte) sum;
+    }
+
+    /**
+     * 字节数字总和的结果字节
+     *
+     * @param data  字节
+     * @param start 开始位置
+     * @param end   结束位置
+     * @return
+     */
+    public byte sum(byte[] data, int start, int end) {
+        int sum = 0;
+        for (int i = start; i <= end; i++) {
+            sum += data[i] & 0xFF;
+            sum &= 0xFF;//溢出则循环计数
+        }
+        return (byte) sum;
+    }
+
 }

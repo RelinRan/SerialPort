@@ -29,7 +29,7 @@ repositories {
 
 ```
 dependencies {
-	implementation 'com.github.RelinRan:SerialPort:2023.9.12.1'
+	implementation 'com.github.RelinRan:SerialPort:2023.9.14.1'
 }
 ```
 
@@ -168,4 +168,63 @@ sercd.start("/dev/ttyMSM2",netInterface,port);
 ```
 sercd.stop();
 ```
+##### 字节工具
+```
+Bytecode bytecode = new Bytecode();
+byte b = 0b00001111;
+```
+Boolean值Byte
+```
+byte b = bytecode.toByte(false,false,false,false,true,true,true,true);//00001111
+```
+Byte的Boolean[]
+```
+boolean[] booleans = bytecode.toBooleans(b);//[false, false, false, false, true, true, true, true]
+```
+Byte转十六进制
+```
+String hex = bytecode.toHex(b);//0F
+```
+Byte转十进制
+```
+int dec = bytecode.toDec(b);//15
+```
+Byte转八进制
+```
+String oct = bytecode.toOct(b);//017
+```
+Byte转二进制
+```
+String bin = bytecode.toBin(b);//00001111
+```
+Byte数组转十六进制字符串
+```
+float floatValue = 99.99f;
+byte[] data = bytecode.toBytes(floatValue);
+String hexString = bytecode.toHex(data);//E1 FA C7 42 
+```
+十六进制String转Byte数组
+```
+byte[] value = bytecode.toBytes(hexString);//[-31, -6, -57, 66]
+```
+Byte数组转Float
+```
+float floatValue = 99.99f;
+byte[] data = bytecode.toBytes(floatValue);
+float value = bytecode.toFloat(new byte[]{data[0],data[1],data[2],data[3]}));//99.99
+```
+Byte数组转Short
+```
+short shortValue = 33;
+byte[] data = bytecode.toBytes(shortValue);
+short value = bytecode.toShort(new byte[]{data[0],data[1]}));//33
+```
+Byte数组转Int
+```
+int intValue = 100;
+byte[] data = bytecode.toBytes(intValue);
+int value = bytecode.toInt(new byte[]{data[0],data[1],data[2],data[3]}));//100
+```
+
+
 
