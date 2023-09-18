@@ -141,9 +141,9 @@ public class Serial {
      * 打开串口
      */
     public void open() {
-        open = true;
         readerFuture = reader.submit(() -> {
             serialPort = new SerialPort(new File(path), baudRate, mode);
+            open = serialPort.isOpen();
             is = serialPort.getInputStream();
             os = serialPort.getOutputStream();
             while (open) {

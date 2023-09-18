@@ -31,6 +31,7 @@ public class SerialPort {
     private FileDescriptor fd;
     private FileInputStream fis;
     private FileOutputStream fos;
+    private boolean open;
 
     /**
      * 是否能读写
@@ -51,7 +52,7 @@ public class SerialPort {
                 cmd.append("chmod 666 ").append(device.getAbsolutePath()).append("\nexit\n");
                 su.getOutputStream().write(cmd.toString().getBytes());
                 if ((su.waitFor() != 0) || !device.canRead() || !device.canWrite()) {
-                    System.err.println(path + " serial port does not have read and write permissions");
+                    System.err.println(path + " serial port failed to modify permissions");
                     return false;
                 }
             } catch (Exception e) {
@@ -73,12 +74,23 @@ public class SerialPort {
         if (isCanReadWrite(device)) {
             fd = open(path, baudRate, mode);
             if (fd != null) {
+                open = true;
                 fis = new FileInputStream(fd);
                 fos = new FileOutputStream(fd);
             } else {
+                open = false;
                 System.err.println(path + " serial port open failed");
             }
         }
+    }
+
+    /**
+     * 是否打开串口
+     *
+     * @return
+     */
+    public boolean isOpen() {
+        return open;
     }
 
     /**
