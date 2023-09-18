@@ -110,6 +110,25 @@ public class Serial {
     }
 
     /**
+     * 初始化串口
+     *
+     * @param path          路径
+     * @param baudRate      波特率
+     * @param mode          模式
+     * @param bufferSize    缓存大小
+     * @param serialChannel 串口通道
+     */
+    public Serial(String path, int baudRate, SerialMode mode, int bufferSize, SerialChannel serialChannel) {
+        this.path = path;
+        this.baudRate = baudRate;
+        this.mode = mode.getFlag();
+        this.bufferSize = bufferSize;
+        this.serialChannel = serialChannel;
+        this.reader = Executors.newScheduledThreadPool(1);
+        this.writer = Executors.newScheduledThreadPool(1);
+    }
+
+    /**
      * 设置串口监听
      *
      * @param onSerialListener 串口监听
