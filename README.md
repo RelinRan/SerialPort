@@ -29,7 +29,7 @@ repositories {
 
 ```
 dependencies {
-	implementation 'com.github.RelinRan:SerialPort:2023.9.14.1'
+	implementation 'com.github.RelinRan:SerialPort:2023.9.18.1'
 }
 ```
 
@@ -83,13 +83,13 @@ android {
 
 ```
 Serial serial = new Serial("/dev/ttyMSM2",30001,SerialMode.RDWR);
-serial.open();
 ```
 
-设置监听
+
+添加监听
 
 ```
-serial.setOnSerialListener(new OnSerialListener() {
+long sid = serial.addSerialListener(new OnSerialListener() {
 
     @Override
     public void onSerialSend(byte[] data) {
@@ -103,13 +103,16 @@ serial.setOnSerialListener(new OnSerialListener() {
     
 });
 ```
+移除监听
 
+```
+serial.remove(sid);
+```
 打开串口
 
 ```
 serial.open();
 ```
-
 关闭串口
 
 ```
