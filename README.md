@@ -83,6 +83,7 @@ android {
 
 ```
 Serial serial = new Serial("/dev/ttyMSM2",30001,SerialMode.RDWR);
+serial.setDebug(true);
 ```
 
 

@@ -102,6 +102,7 @@ public class Serial {
      */
     private boolean sent;
     private Bytecode bytecode;
+    private boolean debug;
 
     /**
      * 初始化串口，默认缓存64字节，可读写模式
@@ -157,6 +158,14 @@ public class Serial {
         bytecode = new Bytecode();
         map = new ConcurrentHashMap<>();
         queue = new ConcurrentLinkedQueue<>();
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
     }
 
     /**
@@ -269,7 +278,9 @@ public class Serial {
                         received = false;
                         for (Long key : map.keySet()) {
                             byte[] data = Arrays.copyOfRange(buffer, 0, length);
-                            logger.log(Level.INFO, "received " + bytecode.toHex(data));
+                            if (isDebug()) {
+                                logger.log(Level.INFO, "received " + bytecode.toHex(data));
+                            }
                             channel.received(data, map.get(key));
                         }
                         received = true;
@@ -303,7 +314,9 @@ public class Serial {
      */
     private void write(byte[] data) {
         try {
-            logger.log(Level.INFO, "send " + bytecode.toHex(data));
+            if (isDebug()) {
+                logger.log(Level.INFO, "send " + bytecode.toHex(data));
+            }
             os.write(data);
             for (Long key : map.keySet()) {
                 channel.send(data, map.get(key));
