@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -12,11 +13,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 串口通讯
  */
 public class Serial {
+    private Logger logger;
     /**
      * 读取线程
      */
@@ -97,6 +101,7 @@ public class Serial {
      * 是否已发送完毕
      */
     private boolean sent;
+    private Bytecode bytecode;
 
     /**
      * 初始化串口，默认缓存64字节，可读写模式
@@ -148,6 +153,8 @@ public class Serial {
         this.channel = channel;
         this.reader = Executors.newCachedThreadPool();
         this.writer = Executors.newScheduledThreadPool(1);
+        logger = Logger.getLogger(Serial.class.getSimpleName());
+        bytecode = new Bytecode();
         map = new ConcurrentHashMap<>();
         queue = new ConcurrentLinkedQueue<>();
     }
@@ -229,6 +236,7 @@ public class Serial {
         return sent;
     }
 
+
     /**
      * 打开串口
      */
@@ -253,6 +261,7 @@ public class Serial {
             return;
         }
         readerFuture = reader.submit(() -> {
+            logger.log(Level.INFO, "start read service.");
             while (open) {
                 try {
                     int length = is.read(buffer);
@@ -260,6 +269,7 @@ public class Serial {
                         received = false;
                         for (Long key : map.keySet()) {
                             byte[] data = Arrays.copyOfRange(buffer, 0, length);
+                            logger.log(Level.INFO, "received " + bytecode.toHex(data));
                             channel.received(data, map.get(key));
                         }
                         received = true;
@@ -278,6 +288,7 @@ public class Serial {
         if (writerFuture != null) {
             writerFuture.cancel(true);
         }
+        logger.log(Level.INFO, "start write schedule queue.");
         writerFuture = writer.scheduleAtFixedRate(() -> {
             if (!queue.isEmpty()) {
                 write(queue.poll());
@@ -292,6 +303,7 @@ public class Serial {
      */
     private void write(byte[] data) {
         try {
+            logger.log(Level.INFO, "send " + bytecode.toHex(data));
             os.write(data);
             for (Long key : map.keySet()) {
                 channel.send(data, map.get(key));
@@ -316,6 +328,7 @@ public class Serial {
      * 关闭串口操作
      */
     public void close() {
+        logger.log(Level.INFO, "close");
         open = false;
         if (is != null) {
             try {

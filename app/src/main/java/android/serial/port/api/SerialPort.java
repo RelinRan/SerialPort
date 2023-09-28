@@ -22,6 +22,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 串口
@@ -32,6 +34,7 @@ public class SerialPort {
     private FileInputStream fis;
     private FileOutputStream fos;
     private boolean open;
+    private Logger logger;
 
     /**
      * 是否能读写
@@ -42,7 +45,7 @@ public class SerialPort {
     public boolean isCanReadWrite(File device) {
         String path = device.getAbsolutePath();
         if (!device.exists()) {
-            System.err.println(path + " serial port is not exist.");
+            logger.log(Level.SEVERE, path + " serial port is not exist.");
             return false;
         }
         if (!device.canRead() || !device.canWrite()) {
@@ -52,7 +55,7 @@ public class SerialPort {
                 cmd.append("chmod 666 ").append(device.getAbsolutePath()).append("\nexit\n");
                 su.getOutputStream().write(cmd.toString().getBytes());
                 if ((su.waitFor() != 0) || !device.canRead() || !device.canWrite()) {
-                    System.err.println(path + " serial port failed to modify permissions");
+                    logger.log(Level.SEVERE, path + " serial port failed to modify permissions");
                     return false;
                 }
             } catch (Exception e) {
@@ -70,6 +73,7 @@ public class SerialPort {
      * @param mode     标识 0：只读模式，1：只写模式，2：读写模式，3：文件访问模式
      */
     public SerialPort(File device, int baudRate, int mode) {
+        logger = Logger.getLogger(SerialPort.class.getSimpleName());
         String path = device.getAbsolutePath();
         if (isCanReadWrite(device)) {
             fd = open(path, baudRate, mode);
@@ -77,9 +81,10 @@ public class SerialPort {
                 open = true;
                 fis = new FileInputStream(fd);
                 fos = new FileOutputStream(fd);
+                logger.log(Level.INFO, path + " " + baudRate + " " + mode + " " + open);
             } else {
                 open = false;
-                System.err.println(path + " serial port open failed");
+                logger.log(Level.SEVERE, "open failed");
             }
         }
     }
