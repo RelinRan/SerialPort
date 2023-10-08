@@ -85,6 +85,24 @@ public class Bytecode {
     }
 
     /**
+     * 字节转16进制字符串
+     *
+     * @param data    字节数组
+     * @param divided 是否划分
+     * @return
+     */
+    public String toHex(byte[] data, boolean divided) {
+        StringBuilder builder = new StringBuilder();
+        for (byte bt : data) {
+            String hex = String.format("%02X", bt);//按照两位十六进制格式化
+            if (divided) {
+                builder.append(hex).append(" ");
+            }
+        }
+        return builder.toString().toUpperCase();
+    }
+
+    /**
      * 16进制字符串转字符串
      *
      * @param hexString 16进制字符
@@ -106,7 +124,17 @@ public class Bytecode {
      * @return
      */
     public byte toByte(int value) {
-        return (byte) value;
+        return (byte) (value & 0xFF);
+    }
+
+    /**
+     * short转1个字节
+     *
+     * @param value 值
+     * @return
+     */
+    public byte toByte(short value) {
+        return (byte) (value & 0xFF);
     }
 
     /**
@@ -176,6 +204,20 @@ public class Bytecode {
             return (short) (Float.parseFloat(value) * multiple);
         }
         return (short) (Short.parseShort(value) * multiple);
+    }
+
+    /**
+     * 数字字符转int
+     *
+     * @param value    数字字符
+     * @param multiple 放大倍数
+     * @return
+     */
+    public int toInt(String value, int multiple) {
+        if (value.contains(".")) {
+            return (int) (Float.parseFloat(value) * multiple);
+        }
+        return (int) (Short.parseShort(value) * multiple);
     }
 
     /**
