@@ -283,6 +283,9 @@ public class Serial {
             logger.log(Level.INFO, "start read service.");
             while (open) {
                 try {
+                    if (is==null){
+                        break;
+                    }
                     int length = is.read(buffer);
                     if (length > 0) {
                         received = false;
