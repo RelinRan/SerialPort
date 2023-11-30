@@ -253,6 +253,13 @@ public class Serial {
         if (readerFuture != null) {
             readerFuture.cancel(true);
         }
+        if (writerFuture != null) {
+            writerFuture.cancel(true);
+        }
+        if (serialPort != null) {
+            serialPort.close();
+            serialPort = null;
+        }
         serialPort = new SerialPort(new File(path), baudRate, mode);
         open = serialPort.isOpen();
         startReadService();
@@ -263,6 +270,9 @@ public class Serial {
      * 开启读取服务
      */
     private void startReadService() {
+        if (!open) {
+            return;
+        }
         byte[] buffer = new byte[bufferSize];
         is = serialPort.getInputStream();
         os = serialPort.getOutputStream();
@@ -296,6 +306,9 @@ public class Serial {
      * 开启写入定时任务队列
      */
     private void startWriteScheduleQueue() {
+        if (!open) {
+            return;
+        }
         if (writerFuture != null) {
             writerFuture.cancel(true);
         }
@@ -313,17 +326,21 @@ public class Serial {
      * @param data
      */
     private void write(byte[] data) {
-        try {
-            if (isDebug()) {
-                logger.log(Level.INFO, "send " + bytecode.toHex(data));
+        if (isOpen()) {
+            try {
+                if (isDebug()) {
+                    logger.log(Level.INFO, "send " + bytecode.toHex(data));
+                }
+                if (os != null) {
+                    os.write(data);
+                    for (Long key : map.keySet()) {
+                        channel.send(data, map.get(key));
+                    }
+                    sent = true;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            os.write(data);
-            for (Long key : map.keySet()) {
-                channel.send(data, map.get(key));
-            }
-            sent = true;
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -333,8 +350,10 @@ public class Serial {
      * @param data 字节数据
      */
     public void send(byte[] data) {
-        sent = false;
-        queue.offer(data);
+        if (open) {
+            sent = false;
+            queue.offer(data);
+        }
     }
 
     /**
