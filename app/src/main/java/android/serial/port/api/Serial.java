@@ -84,11 +84,15 @@ public class Serial {
     /**
      * 发送第一次延时,默认0
      */
-    private long initialDelay = 0;
+    private long firstInterval = 0;
     /**
      * 发送指令延时，默认50ms
      */
-    private long period = 50;
+    private long interval = 50;
+    /**
+     * 超时时间，默认500ms
+     */
+    private long timeout = 500;
     /**
      * 延时单位，默认毫秒
      */
@@ -101,6 +105,10 @@ public class Serial {
      * 是否已发送完毕
      */
     private boolean sent;
+    /**
+     * 发送指令时间
+     */
+    private long sentTime = 0;
     private Bytecode bytecode;
     private boolean debug;
 
@@ -160,12 +168,31 @@ public class Serial {
         queue = new ConcurrentLinkedQueue<>();
     }
 
+    /**
+     * 是否调试模式
+     *
+     * @return
+     */
     public boolean isDebug() {
         return debug;
     }
 
+    /**
+     * 设置调试模式
+     *
+     * @param debug
+     */
     public void setDebug(boolean debug) {
         this.debug = debug;
+    }
+
+    /**
+     * 设置超时时间
+     *
+     * @param timeout 默认单位ms
+     */
+    public void setTimeout(long timeout) {
+        this.timeout = timeout;
     }
 
     /**
@@ -194,19 +221,19 @@ public class Serial {
     /**
      * 设置发送间隔时间
      *
-     * @param period
+     * @param interval
      */
-    public void setPeriod(long period) {
-        this.period = period;
+    public void setInterval(long interval) {
+        this.interval = interval;
     }
 
     /**
      * 设置第一次发送延迟时间
      *
-     * @param initialDelay
+     * @param interval
      */
-    public void setInitialDelay(long initialDelay) {
-        this.initialDelay = initialDelay;
+    public void setFirstInterval(long interval) {
+        this.firstInterval = interval;
     }
 
     /**
@@ -245,7 +272,6 @@ public class Serial {
         return sent;
     }
 
-
     /**
      * 打开串口
      */
@@ -283,7 +309,7 @@ public class Serial {
             logger.log(Level.INFO, "start read service.");
             while (open) {
                 try {
-                    if (is==null){
+                    if (is == null) {
                         break;
                     }
                     int length = is.read(buffer);
@@ -295,6 +321,10 @@ public class Serial {
                                 logger.log(Level.INFO, "received " + bytecode.toHex(data));
                             }
                             channel.received(data, map.get(key));
+                        }
+                        long duration = System.currentTimeMillis() - sentTime;
+                        if (duration < timeout) {
+                            channel.removeTimeout();
                         }
                         received = true;
                     }
@@ -320,7 +350,7 @@ public class Serial {
             if (!queue.isEmpty()) {
                 write(queue.poll());
             }
-        }, initialDelay, period, timeUnit);
+        }, firstInterval, interval, timeUnit);
     }
 
     /**
@@ -338,7 +368,9 @@ public class Serial {
                     os.write(data);
                     for (Long key : map.keySet()) {
                         channel.send(data, map.get(key));
+                        channel.timeout(data, map.get(key), timeout);
                     }
+                    sentTime = System.currentTimeMillis();
                     sent = true;
                 }
             } catch (IOException e) {

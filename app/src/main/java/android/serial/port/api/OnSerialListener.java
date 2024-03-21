@@ -13,6 +13,12 @@ public interface OnSerialListener {
     void onSerialSend(byte[] data);
 
     /**
+     * 发送超时
+     * @param data
+     */
+    void onSerialTimeout(byte[] data);
+
+    /**
      * 串口接收
      *
      * @param data 接收字节
