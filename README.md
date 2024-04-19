@@ -6,7 +6,7 @@ Android 串口通讯 arm64-v8a、armeabi-v7a、x86、x86_64
 
 |名称|操作|
 |-|-|
-|serial.jar|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/serial-2024.3.21.1.jar)|
+|serial.jar|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs)|
 |arm64-v8a|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/arm64-v8a/libserial.so)|
 |armeabi-v7a|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/armeabi-v7a/libserial.so)|
 |x86|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/x86/libserial.so)|
