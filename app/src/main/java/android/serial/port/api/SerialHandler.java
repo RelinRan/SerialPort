@@ -16,12 +16,12 @@ public class SerialChannel extends Handler {
      * @param data     数据
      * @param listener 监听
      */
-    public void send(byte[] data, OnSerialListener listener) {
+    public void send(Packet packet, OnSerialListener listener) {
         Message message = obtainMessage();
         message.what = 1;
         message.obj = listener;
         Bundle bundle = new Bundle();
-        bundle.putByteArray("data", data);
+        bundle.putByteArray("data", packet);
         message.setData(bundle);
         sendMessage(message);
     }
