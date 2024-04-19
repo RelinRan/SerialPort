@@ -4,14 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.DelayQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,20 +17,16 @@ import java.util.logging.Logger;
 /**
  * 串口通讯
  */
-public class Serial {
+public class Serial<T> {
     private Logger logger;
     /**
      * 读取线程
      */
-    private ExecutorService reader;
+    private ExecutorService service;
     /**
      * 读取线程 - 操作
      */
     private Future readerFuture;
-    /**
-     * 写入线程
-     */
-    private ScheduledExecutorService writer;
     /**
      * 写入线程 - 操作
      */
@@ -76,15 +70,11 @@ public class Serial {
     /**
      * 串口消息通道
      */
-    private SerialChannel channel;
+    private SerialHandler handler;
     /**
      * 发送队列
      */
-    private ConcurrentLinkedQueue<byte[]> queue;
-    /**
-     * 发送第一次延时,默认0
-     */
-    private long firstInterval = 0;
+    private DelayQueue<SerialPacket<T>> queue;
     /**
      * 发送指令延时，默认50ms
      */
@@ -93,10 +83,6 @@ public class Serial {
      * 超时时间，默认500ms
      */
     private long timeout = 500;
-    /**
-     * 延时单位，默认毫秒
-     */
-    private TimeUnit timeUnit = TimeUnit.MILLISECONDS;
     /**
      * 是否已收到数据
      */
@@ -109,7 +95,13 @@ public class Serial {
      * 发送指令时间
      */
     private long sentTime = 0;
+    /**
+     * 字节工具
+     */
     private Bytecode bytecode;
+    /**
+     * 是否调试模式
+     */
     private boolean debug;
 
     /**
@@ -142,7 +134,7 @@ public class Serial {
      * @param bufferSize 缓存大小
      */
     public Serial(String path, int baudRate, SerialMode mode, int bufferSize) {
-        this(path, baudRate, mode, bufferSize, new SerialChannel());
+        this(path, baudRate, mode, bufferSize, new SerialHandler());
     }
 
     /**
@@ -152,20 +144,19 @@ public class Serial {
      * @param baudRate   波特率
      * @param mode       模式
      * @param bufferSize 缓存大小
-     * @param channel    串口通道
+     * @param handler    串口处理
      */
-    public Serial(String path, int baudRate, SerialMode mode, int bufferSize, SerialChannel channel) {
+    public Serial(String path, int baudRate, SerialMode mode, int bufferSize, SerialHandler handler) {
         this.path = path;
         this.baudRate = baudRate;
         this.mode = mode.getFlag();
         this.bufferSize = bufferSize;
-        this.channel = channel;
-        this.reader = Executors.newCachedThreadPool();
-        this.writer = Executors.newScheduledThreadPool(1);
+        this.handler = handler;
+        this.service = Executors.newScheduledThreadPool(2);
         logger = Logger.getLogger(Serial.class.getSimpleName());
         bytecode = new Bytecode();
         map = new ConcurrentHashMap<>();
-        queue = new ConcurrentLinkedQueue<>();
+        queue = new DelayQueue<>();
     }
 
     /**
@@ -228,24 +219,6 @@ public class Serial {
     }
 
     /**
-     * 设置第一次发送延迟时间
-     *
-     * @param interval
-     */
-    public void setFirstInterval(long interval) {
-        this.firstInterval = interval;
-    }
-
-    /**
-     * 设置时间单位
-     *
-     * @param timeUnit
-     */
-    public void setTimeUnit(TimeUnit timeUnit) {
-        this.timeUnit = timeUnit;
-    }
-
-    /**
      * 是否打开串口
      *
      * @return
@@ -276,6 +249,9 @@ public class Serial {
      * 打开串口
      */
     public void open() {
+        if (handler == null) {
+            handler = new SerialHandler();
+        }
         if (readerFuture != null) {
             readerFuture.cancel(true);
         }
@@ -289,7 +265,7 @@ public class Serial {
         serialPort = new SerialPort(new File(path), baudRate, mode);
         open = serialPort.isOpen();
         startReadService();
-        startWriteScheduleQueue();
+        startWriteService();
     }
 
     /**
@@ -305,7 +281,25 @@ public class Serial {
         if (is == null) {
             return;
         }
-        readerFuture = reader.submit(() -> {
+        if (readCommand == null) {
+            readCommand = new ReadCommand();
+        }
+        readCommand.setBuffer(buffer);
+        readerFuture = service.submit(readCommand);
+    }
+
+    private ReadCommand readCommand;
+
+    private class ReadCommand implements Runnable {
+
+        private byte[] buffer;
+
+        public void setBuffer(byte[] buffer) {
+            this.buffer = buffer;
+        }
+
+        @Override
+        public void run() {
             logger.log(Level.INFO, "start read service.");
             while (open) {
                 try {
@@ -320,25 +314,25 @@ public class Serial {
                             if (isDebug()) {
                                 logger.log(Level.INFO, "received " + bytecode.toHex(data));
                             }
-                            channel.received(data, map.get(key));
+                            handler.received(data, map.get(key));
                         }
                         long duration = System.currentTimeMillis() - sentTime;
                         if (duration < timeout) {
-                            channel.removeTimeout();
+                            handler.removeTimeout();
                         }
                         received = true;
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(e);
                 }
             }
-        });
+        }
     }
 
     /**
      * 开启写入定时任务队列
      */
-    private void startWriteScheduleQueue() {
+    private void startWriteService() {
         if (!open) {
             return;
         }
@@ -346,35 +340,24 @@ public class Serial {
             writerFuture.cancel(true);
         }
         logger.log(Level.INFO, "start write schedule queue.");
-        writerFuture = writer.scheduleAtFixedRate(() -> {
-            if (!queue.isEmpty()) {
-                write(queue.poll());
-            }
-        }, firstInterval, interval, timeUnit);
+        if (writeCommand == null) {
+            writeCommand = new WriteCommand();
+        }
+        writerFuture = service.submit(writeCommand);
     }
 
-    /**
-     * 写入内容
-     *
-     * @param data
-     */
-    private void write(byte[] data) {
-        if (isOpen()) {
-            try {
-                if (isDebug()) {
-                    logger.log(Level.INFO, "send " + bytecode.toHex(data));
+    private WriteCommand writeCommand;
+
+    private class WriteCommand implements Runnable {
+        @Override
+        public void run() {
+            while (open) {
+                try {
+                    SerialPacket<T> packet = queue.take();
+                    write(packet);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-                if (os != null) {
-                    os.write(data);
-                    for (Long key : map.keySet()) {
-                        channel.send(data, map.get(key));
-                        channel.timeout(data, map.get(key), timeout);
-                    }
-                    sentTime = System.currentTimeMillis();
-                    sent = true;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
     }
@@ -385,9 +368,47 @@ public class Serial {
      * @param data 字节数据
      */
     public void send(byte[] data) {
+        send(data, null);
+    }
+
+    /**
+     * 发送
+     *
+     * @param data    字节数据
+     * @param options 可选参数
+     */
+    public void send(byte[] data, T options) {
         if (open) {
             sent = false;
-            queue.offer(data);
+            int index = queue.size() + 1;
+            queue.add(new SerialPacket(data, options, index * interval));
+        }
+    }
+
+    /**
+     * 写入内容
+     *
+     * @param packet 数据包
+     */
+    private void write(SerialPacket packet) {
+        byte[] data = packet.getData();
+        if (isOpen()) {
+            try {
+                if (isDebug()) {
+                    logger.log(Level.INFO, "send " + bytecode.toHex(data));
+                }
+                if (os != null) {
+                    os.write(data);
+                    for (Long key : map.keySet()) {
+                        handler.send(new SerialPacket(data), map.get(key));
+                        handler.timeout(packet, map.get(key), timeout);
+                    }
+                    sentTime = System.currentTimeMillis();
+                    sent = true;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -417,8 +438,10 @@ public class Serial {
         if (!map.isEmpty()) {
             map.clear();
         }
-        if (channel != null) {
-            channel.removeCallbacksAndMessages(null);
+        if (handler != null) {
+            handler.removeSend();
+            handler.removeReceived();
+            handler.removeTimeout();
         }
         if (serialPort != null) {
             serialPort.close();
@@ -430,6 +453,26 @@ public class Serial {
         if (writerFuture != null) {
             writerFuture.cancel(true);
         }
+    }
+
+    /**
+     * 释放资源
+     */
+    public void release() {
+        close();
+        is = null;
+        os = null;
+        queue = null;
+        map = null;
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        handler = null;
+        serialPort = null;
+        readerFuture = null;
+        readCommand = null;
+        writerFuture = null;
+        writeCommand = null;
     }
 
 }

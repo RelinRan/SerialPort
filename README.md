@@ -29,7 +29,7 @@ repositories {
 
 ```
 dependencies {
-	implementation 'com.github.RelinRan:SerialPort:2024.3.21.1'
+	implementation 'com.github.RelinRan:SerialPort:2024.4.19.1'
 }
 ```
 
@@ -93,8 +93,13 @@ serial.setDebug(true);
 long sid = serial.addSerialListener(new OnSerialListener() {
 
     @Override
-    public void onSerialSend(byte[] data) {
+    public void onSerialSend(SerialPacket<T> packet) {
         //发送内容
+    }
+    
+    @Override
+    public void onSerialTimeout(SerialPacket<T> packet) {
+        //发送超时
     }
 
     @Override

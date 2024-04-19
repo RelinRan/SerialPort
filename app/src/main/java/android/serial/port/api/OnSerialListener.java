@@ -3,20 +3,21 @@ package android.serial.port.api;
 /**
  * 串口监听
  */
-public interface OnSerialListener {
+public interface OnSerialListener<T> {
 
     /**
      * 串口发送
      *
-     * @param data 发送字节
+     * @param packet 数据包
      */
-    void onSerialSend(byte[] data);
+    void onSerialSend(SerialPacket<T> packet);
 
     /**
      * 发送超时
-     * @param data
+     *
+     * @param packet 数据包
      */
-    void onSerialTimeout(byte[] data);
+    void onSerialTimeout(SerialPacket<T> packet);
 
     /**
      * 串口接收

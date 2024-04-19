@@ -3,19 +3,37 @@ package android.serial.port.api;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
-public class Packet<T> implements Delayed {
+/**
+ * 串口数据包
+ *
+ * @param <T>
+ */
+public class SerialPacket<T> implements Delayed {
 
+    /**
+     * 串口数据
+     */
     private final byte[] data;
-    private final Object obj;
+    /**
+     * 客户端可选参数
+     */
+    private final T options;
+    /**
+     * 执行开始时间
+     */
     private final long startTime;
 
-    public Packet(byte[] data, long delay) {
-        this(data,null,delay);
+    public SerialPacket(byte[] data) {
+        this(data, null, 0);
     }
 
-    public Packet(byte[] data, Object obj, long delay) {
+    public SerialPacket(byte[] data, long delay) {
+        this(data, null, delay);
+    }
+
+    public SerialPacket(byte[] data, T options, long delay) {
         this.data = data;
-        this.obj = obj;
+        this.options = options;
         this.startTime = System.currentTimeMillis() + delay;
     }
 
@@ -30,12 +48,19 @@ public class Packet<T> implements Delayed {
         return Long.compare(getDelay(TimeUnit.MILLISECONDS), o.getDelay(TimeUnit.MILLISECONDS));
     }
 
+    /**
+     * 获取数据
+     * @return
+     */
     public byte[] getData() {
         return data;
     }
 
-    public Object getObj() {
-        return obj;
+    /**
+     * 获取可选参数
+     * @return
+     */
+    public T getOptions() {
+        return options;
     }
-
 }
