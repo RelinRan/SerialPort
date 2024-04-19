@@ -29,7 +29,7 @@ repositories {
 
 ```
 dependencies {
-	implementation 'com.github.RelinRan:SerialPort:2024.4.19.1'
+	implementation 'com.github.RelinRan:SerialPort:2024.4.19.2'
 }
 ```
 

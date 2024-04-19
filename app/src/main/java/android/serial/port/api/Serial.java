@@ -400,7 +400,7 @@ public class Serial<T> {
                 if (os != null) {
                     os.write(data);
                     for (Long key : map.keySet()) {
-                        handler.send(new SerialPacket(data), map.get(key));
+                        handler.send(packet, map.get(key));
                         handler.timeout(packet, map.get(key), timeout);
                     }
                     sentTime = System.currentTimeMillis();
