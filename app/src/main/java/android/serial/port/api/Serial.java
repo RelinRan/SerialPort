@@ -374,14 +374,35 @@ public class Serial<T> {
     /**
      * 发送
      *
+     * @param data  字节数据
+     * @param delay 延迟时间
+     */
+    public void send(byte[] data, long delay) {
+        send(data, null, delay);
+    }
+
+    /**
+     * 发送
+     *
      * @param data    字节数据
      * @param options 可选参数
      */
     public void send(byte[] data, T options) {
+        send(data, options, interval);
+    }
+
+    /**
+     * 发送
+     *
+     * @param data    字节数据
+     * @param options 可选参数
+     * @param delay   延迟发送时间
+     */
+    public void send(byte[] data, T options, long delay) {
         if (open) {
             sent = false;
-            int index = queue.size() + 1;
-            queue.add(new SerialPacket(data, options, index * interval));
+            long time = queue.size() > 0 ? queue.peek().getDelay(TimeUnit.MILLISECONDS) + delay : delay;
+            queue.add(new SerialPacket(data, options, time));
         }
     }
 

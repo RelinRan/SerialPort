@@ -40,7 +40,7 @@ public class SerialPacket<T> implements Delayed {
     @Override
     public long getDelay(TimeUnit unit) {
         long remainingTime = startTime - System.currentTimeMillis();
-        return unit.convert(remainingTime, TimeUnit.MILLISECONDS);
+        return unit.convert(remainingTime, unit);
     }
 
     @Override
@@ -50,6 +50,7 @@ public class SerialPacket<T> implements Delayed {
 
     /**
      * 获取数据
+     *
      * @return
      */
     public byte[] getData() {
@@ -58,6 +59,7 @@ public class SerialPacket<T> implements Delayed {
 
     /**
      * 获取可选参数
+     *
      * @return
      */
     public T getOptions() {
