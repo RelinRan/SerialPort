@@ -1,6 +1,11 @@
 ##### Serial Port
 
 Android 串口通讯 arm64-v8a、armeabi-v7a、x86、x86_64
+支持指令队列发送；  
+支持指令间隔设置；  
+支持指令延迟时间设置；  
+支持携带可选参数发送；
+支持单例模式跨页面通信；  
 
 ##### AAR
 
@@ -29,7 +34,7 @@ repositories {
 
 ```
 dependencies {
-	implementation 'com.github.RelinRan:SerialPort:2024.4.19.2'
+	implementation 'com.github.RelinRan:SerialPort:2024.4.23.1'
 }
 ```
 
@@ -90,6 +95,8 @@ serial.setDebug(true);
 添加监听
 
 ```
+//封装一个单例情况下，addSerialListener在当前页面即可获取到指令监听，
+//不需要EventBus、广播等来传递信息，只是注意在页面销毁情况下，remove掉自己的监听即可。
 long sid = serial.addSerialListener(new OnSerialListener() {
 
     @Override
@@ -123,6 +130,27 @@ serial.open();
 
 ```
 serial.close();
+```
+一般发送
+
+```
+byte[] data = new byte[]{0x01,0x02,0x03};
+serial.send(data);
+```
+延迟发送
+
+```
+byte[] data = new byte[]{0x01,0x02,0x03};
+long delay = 200;
+serial.send(data,delay);
+```
+带参发送
+
+```
+byte[] data = new byte[]{0x01,0x02,0x03};
+long delay = 200;
+Object options = new Object();
+serial.send(data,options,delay);
 ```
 
 ##### 代理

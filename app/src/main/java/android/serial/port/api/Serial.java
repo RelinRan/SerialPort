@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.ExecutorService;
@@ -78,7 +79,7 @@ public class Serial<T> {
     /**
      * 发送指令延时，默认50ms
      */
-    private long interval = 50;
+    private long interval = 100;
     /**
      * 超时时间，默认500ms
      */
@@ -103,6 +104,10 @@ public class Serial<T> {
      * 是否调试模式
      */
     private boolean debug;
+    /**
+     * 上一条指令延迟时间
+     */
+    private long beforeDelay = 0;
 
     /**
      * 初始化串口，默认缓存64字节，可读写模式
@@ -401,8 +406,10 @@ public class Serial<T> {
     public void send(byte[] data, T options, long delay) {
         if (open) {
             sent = false;
-            long time = queue.size() > 0 ? queue.peek().getDelay(TimeUnit.MILLISECONDS) + delay : delay;
-            queue.add(new SerialPacket(data, options, time));
+            long diff = beforeDelay - System.currentTimeMillis();
+            long duration = diff >= 0 ? diff + delay : delay;
+            queue.offer(new SerialPacket(data, options, duration));
+            beforeDelay = System.currentTimeMillis() + duration;
         }
     }
 
@@ -416,7 +423,7 @@ public class Serial<T> {
         if (isOpen()) {
             try {
                 if (isDebug()) {
-                    logger.log(Level.INFO, "send " + bytecode.toHex(data));
+                    logger.log(Level.INFO, "send " + bytecode.toHex(data) + ", delay: " + packet.getDelay(TimeUnit.MILLISECONDS));
                 }
                 if (os != null) {
                     os.write(data);
