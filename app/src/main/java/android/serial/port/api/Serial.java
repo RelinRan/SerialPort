@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.ExecutorService;
@@ -108,6 +109,10 @@ public class Serial<T> {
      * 上一条指令延迟时间
      */
     private long beforeDelay = 0;
+    /**
+     * 发送消息的id
+     */
+    private int packetId = 0;
 
     /**
      * 初始化串口，默认缓存64字节，可读写模式
@@ -371,9 +376,10 @@ public class Serial<T> {
      * 发送
      *
      * @param data 字节数据
+     * @return 发送id, 发送失败返回空字符
      */
-    public void send(byte[] data) {
-        send(data, null);
+    public String send(byte[] data) {
+        return send(data, null);
     }
 
     /**
@@ -381,9 +387,10 @@ public class Serial<T> {
      *
      * @param data  字节数据
      * @param delay 延迟时间
+     * @return 发送id, 发送失败返回空字符
      */
-    public void send(byte[] data, long delay) {
-        send(data, null, delay);
+    public String send(byte[] data, long delay) {
+        return send(data, null, delay);
     }
 
     /**
@@ -391,9 +398,10 @@ public class Serial<T> {
      *
      * @param data    字节数据
      * @param options 可选参数
+     * @return 发送id, 发送失败返回空字符
      */
-    public void send(byte[] data, T options) {
-        send(data, options, interval);
+    public String send(byte[] data, T options) {
+        return send(data, options, interval);
     }
 
     /**
@@ -402,16 +410,21 @@ public class Serial<T> {
      * @param data    字节数据
      * @param options 可选参数
      * @param delay   延迟发送时间
+     * @return 发送id, 发送失败返回空字符
      */
-    public void send(byte[] data, T options, long delay) {
+    public String send(byte[] data, T options, long delay) {
         if (open) {
             sent = false;
+            String id = UUID.randomUUID().toString().replace("-", "");
             long diff = beforeDelay - System.currentTimeMillis();
             long duration = diff >= 0 ? diff + delay : delay;
-            queue.offer(new SerialPacket(data, options, duration));
+            queue.offer(new SerialPacket(id, data, options, duration));
             beforeDelay = System.currentTimeMillis() + duration;
+            return id;
         }
+        return "";
     }
+
 
     /**
      * 写入内容

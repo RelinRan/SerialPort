@@ -22,16 +22,42 @@ public class SerialPacket<T> implements Delayed {
      * 执行开始时间
      */
     private final long startTime;
+    /**
+     * 消息id
+     */
+    private final String id;
 
-    public SerialPacket(byte[] data) {
-        this(data, null, 0);
+    /**
+     * 构造
+     *
+     * @param id   编号
+     * @param data 数据
+     */
+    public SerialPacket(String id, byte[] data) {
+        this(id, data, null, 0);
     }
 
-    public SerialPacket(byte[] data, long delay) {
-        this(data, null, delay);
+    /**
+     * 构造
+     *
+     * @param id    编号
+     * @param data  数据
+     * @param delay 延迟
+     */
+    public SerialPacket(String id, byte[] data, long delay) {
+        this(id, data, null, delay);
     }
 
-    public SerialPacket(byte[] data, T options, long delay) {
+    /**
+     * 构造
+     *
+     * @param id      编号
+     * @param data    数据
+     * @param options 参数
+     * @param delay   延迟
+     */
+    public SerialPacket(String id, byte[] data, T options, long delay) {
+        this.id = id;
         this.data = data;
         this.options = options;
         this.startTime = System.currentTimeMillis() + delay;
@@ -64,5 +90,14 @@ public class SerialPacket<T> implements Delayed {
      */
     public T getOptions() {
         return options;
+    }
+
+    /**
+     * 获取数据包id
+     *
+     * @return
+     */
+    public String getId() {
+        return id;
     }
 }
