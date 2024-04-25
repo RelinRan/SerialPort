@@ -109,10 +109,6 @@ public class Serial<T> {
      * 上一条指令延迟时间
      */
     private long beforeDelay = 0;
-    /**
-     * 发送消息的id
-     */
-    private int packetId = 0;
 
     /**
      * 初始化串口，默认缓存64字节，可读写模式
