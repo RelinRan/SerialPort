@@ -13,19 +13,19 @@ public class SerialPacket<T> implements Delayed {
     /**
      * 串口数据
      */
-    private final byte[] data;
+    private byte[] data;
     /**
      * 客户端可选参数
      */
-    private final T options;
+    private T options;
     /**
      * 执行开始时间
      */
-    private final long startTime;
+    private long startTime;
     /**
      * 消息id
      */
-    private final String id;
+    private String id;
 
     /**
      * 构造
@@ -99,5 +99,14 @@ public class SerialPacket<T> implements Delayed {
      */
     public String getId() {
         return id;
+    }
+
+    /**
+     * 释放资源
+     */
+    public void release() {
+        data = null;
+        options = null;
+        id = null;
     }
 }
