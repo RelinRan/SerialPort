@@ -1,5 +1,7 @@
 package android.serial.port.api;
 
+import android.os.Looper;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -140,7 +142,7 @@ public class Serial<T> {
      * @param bufferSize 缓存大小
      */
     public Serial(String path, int baudRate, SerialMode mode, int bufferSize) {
-        this(path, baudRate, mode, bufferSize, new SerialHandler());
+        this(path, baudRate, mode, bufferSize, new SerialHandler(Looper.getMainLooper()));
     }
 
     /**
@@ -256,7 +258,7 @@ public class Serial<T> {
      */
     public void open() {
         if (handler == null) {
-            handler = new SerialHandler();
+            handler = new SerialHandler(Looper.getMainLooper());
         }
         if (readerFuture != null) {
             readerFuture.cancel(true);

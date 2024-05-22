@@ -1,6 +1,7 @@
 package android.serial.port.api;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 
 
@@ -21,6 +22,10 @@ public class SerialHandler extends Handler {
      * 超时
      */
     private final int TIMEOUT = 3;
+
+    public SerialHandler(Looper looper) {
+        super(looper);
+    }
 
     /**
      * 发送
