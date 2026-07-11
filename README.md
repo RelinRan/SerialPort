@@ -1,268 +1,175 @@
-##### Serial Port
+# SerialPort
 
-Android 串口通讯 arm64-v8a、armeabi-v7a、x86、x86_64
-支持指令队列发送；  
-支持指令间隔设置；  
-支持指令延迟时间设置；  
-支持携带可选参数发送；  
-支持单例模式跨页面通信；  
+[简体中文](README_zh.md) | English
 
-##### AAR
+SerialPort is an Android library for communicating with Linux serial devices. It combines JNI-based device access with queued writes, delayed commands, callbacks, device discovery, byte conversion utilities, and an optional serial-to-network proxy.
 
-|名称|操作|
-|-|-|
-|serial.jar|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs)|
-|arm64-v8a|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/arm64-v8a/libserial.so)|
-|armeabi-v7a|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/armeabi-v7a/libserial.so)|
-|x86|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/x86/libserial.so)|
-|x86_64|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/x86_64/libserial.so)|
-|arm-zip|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/arm.zip)|
-|x86-zip|[下载](https://github.com/RelinRan/SerialPort/blob/main/libs/x86.zip)|
+## Features
 
-##### Maven
+- Opens Android/Linux serial device nodes with configurable baud rate and access mode.
+- Supports `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64`.
+- Queues outgoing packets and supports delayed transmission.
+- Provides send, receive, and timeout callbacks.
+- Allows optional application data to travel with each packet.
+- Discovers serial drivers and device paths through `/proc/tty/drivers`.
+- Includes little-endian and configurable-endian byte conversion helpers.
+- Provides an optional serial-to-network proxy service.
 
-1.build.grade | setting.grade
+## Requirements
 
-```
-repositories {
-	...
-	maven { url 'https://jitpack.io' }
+- Android API 21 or later.
+- A device that exposes a compatible Linux serial device node.
+- Read and write permission for that device node. The library may attempt `su` and `chmod 666` when ordinary access is unavailable.
+
+Hardware vendors frequently use different device paths, permission policies, kernels, and SELinux rules. Validate the library on every target device before deployment.
+
+## Installation
+
+### JitPack
+
+Add JitPack to the dependency repositories in `settings.gradle`:
+
+```groovy
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
 }
 ```
 
-2./app/build.grade
+Add the dependency to your application module:
 
-```
+```groovy
 dependencies {
-	implementation 'com.github.RelinRan:SerialPort:2024.4.23.1'
+    implementation 'com.github.RelinRan:SerialPort:v1.0.0'
 }
 ```
 
-3.CPU架构
+### Release JAR and native libraries
 
+GitHub Releases provides `serial-1.0.0.jar`, which contains the Java classes only. Copy the JAR to your module's `libs` directory and add the required native libraries from this repository to the matching ABI directories:
+
+```text
+app/
+  libs/serial-1.0.0.jar
+  src/main/jniLibs/arm64-v8a/libserial.so
+  src/main/jniLibs/armeabi-v7a/libserial.so
+  src/main/jniLibs/x86/libserial.so
+  src/main/jniLibs/x86_64/libserial.so
 ```
-defaultConfig {
-   ndk {
-       abiFilters 'arm64-v8a','armeabi-v7a','x86','x86_64'
+
+```groovy
+dependencies {
+    implementation files('libs/serial-1.0.0.jar')
+}
+```
+
+A plain JAR cannot install JNI libraries. Include at least the `.so` file for every ABI shipped by your application.
+
+## Quick Start
+
+Discover available serial device paths:
+
+```java
+SerialPortFinder finder = new SerialPortFinder();
+for (String path : finder.getAllDevicesPath()) {
+    Log.i("SerialPort", "device: " + path);
+}
+```
+
+Create and open a serial connection:
+
+```java
+Serial serial = new Serial("/dev/ttyMSM2", 115200, SerialMode.RDWR);
+serial.setDebug(BuildConfig.DEBUG);
+
+long listenerId = serial.addSerialListener(new OnSerialListener<Object>() {
+    @Override
+    public void onSerialSend(SerialPacket<Object> packet) {
+        // The packet was written to the output stream.
     }
-}
-```
-
-##### 文件依赖
-
-下载的jar放入libs文件夹，so文件放入jniLibs文件夹
-
-```
-android {
-    sourceSets {
-        main {
-            jniLibs.srcDirs = ['src/main/jniLibs']
-        }
-    }
-}
-```
-
-##### 权限
-
-```
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-```
-
-##### 路径
-
-所有驱动路径
-
-```
- SerialPortFinder finder = new SerialPortFinder();
- String[] paths = finder.getAllDevicesPath();
- for (String path : paths) {
-     Log.i("SerialPortFinder","path:"+path);
- }
-```
-
-##### 通讯
-
-初始化串口
-
-```
-Serial serial = new Serial("/dev/ttyMSM2",30001,SerialMode.RDWR);
-serial.setDebug(true);
-```
-
-
-添加监听
-
-```
-//封装一个单例情况下，addSerialListener在当前页面即可获取到指令监听，
-//不需要EventBus、广播等来传递信息，只是注意在页面销毁情况下，remove掉自己的监听即可。
-long sid = serial.addSerialListener(new OnSerialListener() {
 
     @Override
-    public void onSerialSend(SerialPacket<T> packet) {
-        //发送内容
-    }
-    
-    @Override
-    public void onSerialTimeout(SerialPacket<T> packet) {
-        //发送超时
+    public void onSerialTimeout(SerialPacket<Object> packet) {
+        // No receive event cancelled the packet timeout.
     }
 
     @Override
     public void onSerialReceived(byte[] data) {
-        //接收内容
+        // Process bytes from the serial device.
     }
-    
 });
-```
-移除监听
 
-```
-serial.remove(sid);
-```
-打开串口
-
-```
 serial.open();
+serial.send(new byte[] {0x01, 0x02, 0x03});
 ```
-关闭串口
 
-```
-serial.close();
-```
-一般发送
+Delayed packets and application-specific options are also supported:
 
-```
-byte[] data = new byte[]{0x01,0x02,0x03};
-serial.send(data);
-```
-延迟发送
-
-```
-byte[] data = new byte[]{0x01,0x02,0x03};
-long delay = 200;
-serial.send(data,delay);
-```
-带参发送
-
-```
-byte[] data = new byte[]{0x01,0x02,0x03};
-long delay = 200;
+```java
+long delayMillis = 200L;
 Object options = new Object();
-serial.send(data,options,delay);
+serial.send(new byte[] {0x01, 0x02}, options, delayMillis);
 ```
 
-##### 代理
+Remove listeners when their owner is destroyed, then close and release the connection:
 
-服务配置
-
+```java
+serial.remove(listenerId);
+serial.close();
+serial.release();
 ```
+
+Do not share one `Bytecode` instance between threads. Its formatting methods reuse an internal buffer.
+
+## Serial-to-Network Proxy
+
+Declare the service in `AndroidManifest.xml`:
+
+```xml
 <service
     android:name="android.serial.port.api.SercdService"
     android:directBootAware="true"
     android:enabled="true" />
 ```
 
-初始化
+Start the proxy with the serial path, network interface address, and listening port:
 
-```
-Sercd sercd = new Sercd(getContext());
-```
-
-网络接口列表 + 端口
-
-```
-String netInterface = "";
-int port = 30001;
-Map<String, String> map = sercd.feedNetworkInterfacesList();
-for (String key:map.keySet()){
-    //wifi是wlan0
-    if (key.equals("eth0")){
-        netInterface = map.get(key);
-    }
-}
+```java
+Sercd sercd = new Sercd(context);
+Map<String, String> interfaces = sercd.feedNetworkInterfacesList();
+String address = interfaces.get("eth0");
+sercd.start("/dev/ttyMSM2", address, 30001);
 ```
 
-设置监听
+Call `sercd.stop()` when the proxy is no longer needed. Add `android.permission.INTERNET` when using this feature.
 
-```
-sercd.setOnSercdListener(new OnSercdListener() {
-    @Override
-    public void onSercdStateChange(ProxyState proxyState) {
-        System.out.println("proxyState:"+proxyState);
-    }
-});
-```
+## Building
 
-开始代理
+The project uses Gradle 7.2 and Android Gradle Plugin 7.0.2. Configure a local Android SDK, then run:
 
-```
-sercd.start("/dev/ttyMSM2",netInterface,port);
+```shell
+./gradlew :app:assembleRelease
 ```
 
-关闭代理
+The AAR is written to `app/build/outputs/aar/app-release.aar`.
 
-```
-sercd.stop();
-```
-##### 字节工具
-```
-Bytecode bytecode = new Bytecode();
-byte b = 0b00001111;
-```
-Boolean值Byte
-```
-byte b = bytecode.toByte(false,false,false,false,true,true,true,true);//00001111
-```
-Byte的Boolean[]
-```
-boolean[] booleans = bytecode.toBooleans(b);//[false, false, false, false, true, true, true, true]
-```
-Byte转十六进制
-```
-String hex = bytecode.toHex(b);//0F
-```
-Byte转十进制
-```
-int dec = bytecode.toDec(b);//15
-```
-Byte转八进制
-```
-String oct = bytecode.toOct(b);//017
-```
-Byte转二进制
-```
-String bin = bytecode.toBin(b);//00001111
-```
-Byte数组转十六进制字符串
-```
-float floatValue = 99.99f;
-byte[] data = bytecode.toBytes(floatValue);
-String hexString = bytecode.toHex(data);//E1 FA C7 42 
-```
-十六进制String转Byte数组
-```
-byte[] value = bytecode.toBytes(hexString);//[-31, -6, -57, 66]
-```
-Byte数组转Float
-```
-float floatValue = 99.99f;
-byte[] data = bytecode.toBytes(floatValue);
-float value = bytecode.toFloat(new byte[]{data[0],data[1],data[2],data[3]}));//99.99
-```
-Byte数组转Short
-```
-short shortValue = 33;
-byte[] data = bytecode.toBytes(shortValue);
-short value = bytecode.toShort(new byte[]{data[0],data[1]}));//33
-```
-Byte数组转Int
-```
-int intValue = 100;
-byte[] data = bytecode.toBytes(intValue);
-int value = bytecode.toInt(new byte[]{data[0],data[1],data[2],data[3]}));//100
-```
+## Releases and Versioning
 
+SerialPort follows [Semantic Versioning](https://semver.org/). A tag named `vMAJOR.MINOR.PATCH` starts the GitHub Actions release workflow. The workflow verifies that the tag matches `VERSION_NAME`, builds the release AAR, extracts its Java classes, and publishes a versioned JAR in GitHub Releases.
 
+## Security and Safety
 
+Opening hardware device nodes and changing their permissions can weaken device security. Never run untrusted input as a device path, and do not rely on world-writable permissions in production images. Serial commands can affect attached equipment; use framing, validation, timeouts, and device-specific safety controls in the application layer.
+
+Read the [Software Disclaimer](DISCLAIMER.md) before integrating this library.
+
+## Contributing
+
+Issues and focused pull requests are welcome. Include the Android version, hardware model, ABI, serial device path, baud rate, relevant logs, and a minimal reproduction when reporting device-specific failures.
+
+## License
+
+Copyright (c) 2026 RelinRan. Repository-owned code is available under the [MIT License](LICENSE). Files that contain their own license headers remain governed by those notices.

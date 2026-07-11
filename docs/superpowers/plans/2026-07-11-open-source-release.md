@@ -18,15 +18,15 @@
 - Modify: `app/build.gradle`
 - Modify: `app/src/main/java/android/serial/port/api/Bytecode.java`
 
-- [ ] **Step 1: Define the project version**
+- [x] **Step 1: Define the project version**
 
 Add `VERSION_NAME=1.0.0` to `gradle.properties` and set `versionName VERSION_NAME` in `app/build.gradle` so CI and Android metadata share one source of truth.
 
-- [ ] **Step 2: Keep IDE state out of Git**
+- [x] **Step 2: Keep IDE state out of Git**
 
 Add `/.idea/` to `.gitignore`, preserving the existing ignore entries.
 
-- [ ] **Step 3: Review the existing Bytecode change**
+- [x] **Step 3: Review the existing Bytecode change**
 
 Run `git diff -- app/src/main/java/android/serial/port/api/Bytecode.java` and confirm the only behavior change is reuse and reset of the instance `StringBuilder`.
 
@@ -40,15 +40,15 @@ Run `./gradlew.bat properties --no-daemon` and expect `VERSION_NAME: 1.0.0` with
 - Modify: `README.md`
 - Create: `README_zh.md`
 
-- [ ] **Step 1: Write the default English README**
+- [x] **Step 1: Write the default English README**
 
 Document the project overview, features, compatibility, JitPack and local JAR/native-library installation, quick start, listener lifecycle, proxy service, building, release model, security considerations, contributing, disclaimer, and license. Link to `README_zh.md` at the top.
 
-- [ ] **Step 2: Write the equivalent Chinese README**
+- [x] **Step 2: Write the equivalent Chinese README**
 
 Mirror all material sections accurately in Chinese and link back to `README.md` at the top.
 
-- [ ] **Step 3: Check local README links**
+- [x] **Step 3: Check local README links**
 
 Extract relative Markdown targets from both READMEs and confirm each referenced local file exists.
 
@@ -59,19 +59,19 @@ Extract relative Markdown targets from both READMEs and confirm each referenced 
 - Create: `DISCLAIMER.md`
 - Create: `DISCLAIMER_zh.md`
 
-- [ ] **Step 1: Add the canonical MIT license**
+- [x] **Step 1: Add the canonical MIT license**
 
 Use the complete MIT license text with copyright `2026 RelinRan`.
 
-- [ ] **Step 2: Add the English disclaimer**
+- [x] **Step 2: Add the English disclaimer**
 
 Cover no warranty, hardware and firmware differences, privileged device access, root and permission risks, data and equipment safety, testing responsibility, export and legal compliance, and third-party notices. Link to the Chinese disclaimer.
 
-- [ ] **Step 3: Add the Chinese disclaimer**
+- [x] **Step 3: Add the Chinese disclaimer**
 
 Provide an equivalent Chinese statement and link to the English disclaimer.
 
-- [ ] **Step 4: Validate license identity**
+- [x] **Step 4: Validate license identity**
 
 Confirm `LICENSE` contains `MIT License`, the permission grant, warranty disclaimer, and copyright line.
 
@@ -80,23 +80,23 @@ Confirm `LICENSE` contains `MIT License`, the permission grant, warranty disclai
 **Files:**
 - Create: `.github/workflows/release.yml`
 
-- [ ] **Step 1: Configure the release trigger and permissions**
+- [x] **Step 1: Configure the release trigger and permissions**
 
 Trigger on pushed tags matching `v*.*.*`, set `contents: write`, use Ubuntu, and configure JDK 11 with Gradle caching.
 
-- [ ] **Step 2: Validate tag and project versions**
+- [x] **Step 2: Validate tag and project versions**
 
 Read `VERSION_NAME` from `gradle.properties`, remove the leading `v` from `GITHUB_REF_NAME`, fail when they differ, and expose the validated version through `GITHUB_OUTPUT`.
 
-- [ ] **Step 3: Build and package the JAR**
+- [x] **Step 3: Build and package the JAR**
 
 Run `./gradlew :app:assembleRelease --no-daemon`, extract `classes.jar` from `app/build/outputs/aar/app-release.aar`, rename it to `dist/serial-${version}.jar`, reject an empty artifact, and inspect it with `jar tf`.
 
-- [ ] **Step 4: Publish the GitHub Release**
+- [x] **Step 4: Publish the GitHub Release**
 
 Use `softprops/action-gh-release` pinned to a full commit SHA, enable generated release notes, and attach `dist/serial-${version}.jar`.
 
-- [ ] **Step 5: Validate workflow syntax and pinned actions**
+- [x] **Step 5: Validate workflow syntax and pinned actions**
 
 Parse `.github/workflows/release.yml` with a YAML parser, confirm the tag trigger and `contents: write`, and ensure third-party actions do not use floating branch names.
 

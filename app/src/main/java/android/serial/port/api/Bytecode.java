@@ -8,6 +8,17 @@ import java.nio.ByteOrder;
  */
 public class Bytecode {
 
+    private StringBuilder builder;
+
+    private StringBuilder getBuilder(){
+        if (builder==null){
+            builder = new StringBuilder();
+        }else{
+            builder.setLength(0);
+        }
+        return builder;
+    }
+
     /**
      * byte转16进制字符串
      *
@@ -35,7 +46,7 @@ public class Bytecode {
      * @return
      */
     public String toOct(byte value) {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = getBuilder();
         for (int i = 2; i >= 0; i--) {
             int octalDigit = (value >> (i * 3)) & 0b111;
             builder.append(octalDigit);
@@ -50,7 +61,7 @@ public class Bytecode {
      * @return
      */
     public String toBin(byte value) {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = getBuilder();
         for (int i = 0; i < 8; i++) {
             boolean bit = ((value >> (7 - i)) & 0x01) != 0;
             builder.append(bit ? 1 : 0);
@@ -76,7 +87,7 @@ public class Bytecode {
      * @return
      */
     public String toHex(byte[] data) {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = getBuilder();
         for (byte bt : data) {
             String hex = String.format("%02X", bt);//按照两位十六进制格式化
             builder.append(hex).append(" ");
@@ -92,7 +103,7 @@ public class Bytecode {
      * @return
      */
     public String toHex(byte[] data, boolean divided) {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = getBuilder();
         for (byte bt : data) {
             String hex = String.format("%02X", bt);//按照两位十六进制格式化
             if (divided) {
