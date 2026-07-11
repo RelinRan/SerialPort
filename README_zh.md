@@ -1,45 +1,41 @@
-# SerialPort
+# Android SerialPort
 
-简体中文 | [English](README.md)
+[English](README.md) | 简体中文
 
-SerialPort 是用于访问 Linux 串口设备的 Android 通信库。项目通过 JNI 操作设备节点，并提供发送队列、延迟指令、事件回调、设备发现、字节转换工具及可选的串口转网络代理。
+SerialPort 是面向 Android 应用的 Linux 串口通信库，适用于 `/dev/ttyS*`、`/dev/ttyUSB*` 及厂商自定义 UART 设备路径。项目包含打开设备所需的 JNI 桥接和原生库，并在 Java 层提供异步读写、发送队列、事件回调与超时处理。
 
-## 功能
+仓库还提供串口设备发现、二进制转换工具及可选的串口转 TCP 代理服务。
 
-- 按指定波特率和访问模式打开 Android/Linux 串口设备节点。
-- 支持 `arm64-v8a`、`armeabi-v7a`、`x86` 和 `x86_64`。
-- 支持发送队列和延迟发送。
-- 提供发送、接收及超时回调。
-- 发送数据包可携带业务自定义参数。
-- 通过 `/proc/tty/drivers` 查找串口驱动和设备路径。
-- 提供小端序及自定义端序的字节转换工具。
-- 提供可选的串口转网络代理服务。
+## 核心逻辑
 
-## 环境要求
+`Serial<T>` 是主要入口。每个实例管理一个串口连接和独立的读写任务，并通过 `SerialHandler` 分发事件。未显式传入 Handler 的构造方法使用 Android 主线程 Looper，因此监听回调默认在主线程执行。
 
-- Android API 21 或更高版本。
-- 设备内核已暴露兼容的 Linux 串口设备节点。
-- 应用具有该设备节点的读写权限。普通权限不足时，库可能尝试执行 `su` 和 `chmod 666`。
+待发送数据包保存在延迟队列中，调用方无需阻塞即可控制连续指令的发送间隔。每个成功入队的数据包都会生成 ID，也可以携带业务自定义的 `options`；发送和超时回调会返回相同的数据包信息。
 
-不同硬件厂商采用的设备路径、权限策略、内核和 SELinux 规则可能不同。正式部署前必须在每一种目标设备上完成验证。
+原生库支持以下 ABI：
 
-## 接入方式
+- `arm64-v8a`
+- `armeabi-v7a`
+- `x86`
+- `x86_64`
+
+Android 模块最低支持 API 21。
+
+## 添加依赖
 
 ### JitPack
 
-在 `settings.gradle` 中添加 JitPack 仓库：
+在 `dependencyResolutionManagement` 中添加 JitPack：
 
 ```groovy
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url 'https://jitpack.io' }
-    }
+repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 ```
 
-在应用模块中添加依赖：
+然后添加对应标签版本：
 
 ```groovy
 dependencies {
@@ -47,17 +43,19 @@ dependencies {
 }
 ```
 
-### Release JAR 与原生库
+### JAR 方式
 
-GitHub Releases 提供的 `serial-1.0.0.jar` 只包含 Java 类。将 JAR 放入模块的 `libs` 目录，并从本仓库复制所需 ABI 对应的原生库：
+每个 GitHub Release 都会提供带版本号的 JAR，例如 `serial-1.0.0.jar`。该文件只包含 Java 字节码，Android 应用仍需在所支持的每个 ABI 目录下放置对应的 `libserial.so`：
 
 ```text
 app/
-  libs/serial-1.0.0.jar
-  src/main/jniLibs/arm64-v8a/libserial.so
-  src/main/jniLibs/armeabi-v7a/libserial.so
-  src/main/jniLibs/x86/libserial.so
-  src/main/jniLibs/x86_64/libserial.so
+├── libs/
+│   └── serial-1.0.0.jar
+└── src/main/jniLibs/
+    ├── arm64-v8a/libserial.so
+    ├── armeabi-v7a/libserial.so
+    ├── x86/libserial.so
+    └── x86_64/libserial.so
 ```
 
 ```groovy
@@ -66,110 +64,174 @@ dependencies {
 }
 ```
 
-普通 JAR 无法安装 JNI 原生库。应用支持的每种 ABI 都必须包含对应的 `.so` 文件。
+建议优先使用 JitPack 依赖，因为它会保留 Android Library 打包结构，并把原生库放到 Android 期望的位置。
 
-## 快速开始
+## 打开串口
 
-查找可用串口设备路径：
+使用设备路径、波特率、访问模式和可选的读取缓冲区大小创建 `Serial`：
 
 ```java
-SerialPortFinder finder = new SerialPortFinder();
-for (String path : finder.getAllDevicesPath()) {
-    Log.i("SerialPort", "device: " + path);
-}
+Serial<CommandContext> serial = new Serial<>(
+        "/dev/ttyS4",
+        115200,
+        SerialMode.RDWR,
+        256
+);
+
+serial.setInterval(100L);
+serial.setTimeout(500L);
+serial.setDebug(BuildConfig.DEBUG);
 ```
 
-创建并打开串口连接：
+建议在调用 `open()` 前注册监听：
 
 ```java
-Serial serial = new Serial("/dev/ttyMSM2", 115200, SerialMode.RDWR);
-serial.setDebug(BuildConfig.DEBUG);
-
-long listenerId = serial.addSerialListener(new OnSerialListener<Object>() {
+long listenerId = serial.addSerialListener(new OnSerialListener<CommandContext>() {
     @Override
-    public void onSerialSend(SerialPacket<Object> packet) {
-        // 数据包已写入输出流。
-    }
-
-    @Override
-    public void onSerialTimeout(SerialPacket<Object> packet) {
-        // 在超时前未收到可取消超时的接收事件。
+    public void onSerialSend(SerialPacket<CommandContext> packet) {
+        Log.d("Serial", "sent: " + packet.getId());
     }
 
     @Override
     public void onSerialReceived(byte[] data) {
-        // 处理串口返回数据。
+        consumeFrame(data);
+    }
+
+    @Override
+    public void onSerialTimeout(SerialPacket<CommandContext> packet) {
+        retryOrFail(packet.getOptions());
     }
 });
 
 serial.open();
-serial.send(new byte[] {0x01, 0x02, 0x03});
+if (!serial.isOpen()) {
+    throw new IllegalStateException("无法打开串口设备");
+}
 ```
 
-也可以延迟发送并携带业务参数：
+`CommandContext` 可以替换为任意业务类型；不需要数据包上下文时可使用 `Serial<Object>`。
+
+## 发送指令
+
+串口已打开时，`send` 会返回生成的数据包 ID；串口未打开时不会入队，并返回空字符串。
 
 ```java
-long delayMillis = 200L;
-Object options = new Object();
-serial.send(new byte[] {0x01, 0x02}, options, delayMillis);
+byte[] request = new byte[] {0x01, 0x03, 0x00, 0x00, 0x00, 0x02};
+
+String packetId = serial.send(request);
+String delayedId = serial.send(request, 250L);
+String contextualId = serial.send(request, new CommandContext("read-registers"));
+String explicitId = serial.send(request, new CommandContext("read-registers"), 250L);
 ```
 
-页面或组件销毁时应移除监听，然后关闭并释放串口：
+没有显式指定延迟的重载方法使用配置的发送间隔，默认值为 100 ms。显式延迟也会与队列中已有的数据包串行计算，因此指令会保持调度顺序。
+
+数据写入后，每个监听器都会收到 `onSerialSend`。库会按配置的超时时间安排超时回调，默认值为 500 ms；在超时窗口内收到数据会移除待处理的超时消息。库本身不会解析协议，也不会把响应与某个请求逐一匹配，分帧、校验、请求关联、重试和半包缓存都应由应用层实现。
+
+## 正确处理接收数据
+
+读取任务会把每次成功读取的数据复制为新的字节数组再回调。一次回调不一定等于一个协议帧：一个帧可能分多次到达，多帧也可能合并到一次回调中。应用必须按照设备协议累积并解析字节流。
+
+默认读取缓冲区为 64 字节。如果设备可能突发返回更多数据，应使用四参数构造方法设置更大的缓冲区。
+
+## 生命周期
+
+监听所属组件销毁时应移除监听。后续可能重新打开串口时调用 `close()`；实例永久不再使用时调用 `release()`：
 
 ```java
 serial.remove(listenerId);
 serial.close();
+
+// 仅用于最终释放，调用后不要复用该实例。
 serial.release();
 ```
 
-不要在多个线程之间共享同一个 `Bytecode` 实例，其格式化方法会复用内部缓冲区。
+`release()` 会清空工作线程、队列、Handler 和数据流，因此不能在释放后继续使用同一实例打开串口。
 
-## 串口转网络代理
+## 查找设备路径
 
-在 `AndroidManifest.xml` 中声明服务：
-
-```xml
-<service
-    android:name="android.serial.port.api.SercdService"
-    android:directBootAware="true"
-    android:enabled="true" />
-```
-
-使用串口路径、网络接口地址和监听端口启动代理：
+`SerialPortFinder` 读取 `/proc/tty/drivers` 并扫描对应的设备路径：
 
 ```java
-Sercd sercd = new Sercd(context);
-Map<String, String> interfaces = sercd.feedNetworkInterfacesList();
-String address = interfaces.get("eth0");
-sercd.start("/dev/ttyMSM2", address, 30001);
+SerialPortFinder finder = new SerialPortFinder();
+
+for (String path : finder.getAllDevicesPath()) {
+    Log.d("Serial", path);
+}
 ```
 
-不再使用代理时调用 `sercd.stop()`。使用此功能时需声明 `android.permission.INTERNET`。
+设备发现只是辅助能力，不代表应用具有访问权限。Android 硬件厂商经常使用固定的自定义 UART 路径，因此生产应用通常从设备配置中读取串口路径。
 
-## 构建
+## 二进制转换
 
-项目使用 Gradle 7.2 和 Android Gradle Plugin 7.0.2。配置本地 Android SDK 后执行：
+`Bytecode` 支持基础数值、字节数组、十六进制字符串、位数组和端序转换：
+
+```java
+Bytecode codec = new Bytecode();
+
+byte[] littleEndian = codec.toBytes(9600);
+byte[] bigEndian = codec.toBytes(9600, ByteOrder.BIG_ENDIAN);
+String hex = codec.toHex(new byte[] {0x01, 0x2A});
+int value = codec.toInt(littleEndian);
+```
+
+数值转换默认使用小端序。`Bytecode` 实例会复用内部格式化缓冲区，不应由多个线程并发共享。
+
+## 串口转 TCP 代理
+
+`Sercd` 通过后台服务把串口设备暴露到指定网络接口和端口。使用前声明服务和网络权限：
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+
+<application>
+    <service
+        android:name="android.serial.port.api.SercdService"
+        android:directBootAware="true"
+        android:enabled="true" />
+</application>
+```
+
+```java
+Sercd proxy = new Sercd(context);
+proxy.setOnSercdListener(state -> Log.d("Sercd", state.name()));
+
+Map<String, String> interfaces = proxy.feedNetworkInterfacesList();
+String address = interfaces.get("eth0");
+proxy.start("/dev/ttyS4", address, 30001);
+
+// 注销广播接收器并停止服务。
+proxy.stop();
+```
+
+本库不提供身份认证和传输加密。没有在外层增加安全措施时，不要把代理暴露到不可信网络。
+
+## 设备权限
+
+只有应用进程可读写的设备节点才能被原生接口打开。权限不足时，当前实现会尝试运行 `/system/bin/su` 并执行 `chmod 666 <device>`。
+
+这种回退方式不适合许多生产环境：它依赖 Root，可能被 SELinux 阻止，还会让所有进程都能写入该设备节点。更合理的部署方式是在设备固件中配置所有者、用户组和 SELinux 策略，使应用只获得必要权限。
+
+不要使用不可信输入拼接串口设备路径。
+
+## 构建与发布
+
+项目使用 Android Gradle Plugin 7.0.2、Gradle 7.2、Java 8 源码兼容级别、compile SDK 31 和 minimum SDK 21。
 
 ```shell
 ./gradlew :app:assembleRelease
 ```
 
-AAR 输出路径为 `app/build/outputs/aar/app-release.aar`。
+Release AAR 输出到 `app/build/outputs/aar/app-release.aar`。
 
-## 发布与版本规则
+版本遵循语义化版本规则。推送 `v1.0.0` 形式的标签后，发布工作流会校验标签与 `VERSION_NAME`、构建 AAR、提取 `classes.jar`，并在 GitHub Releases 中发布为 `serial-1.0.0.jar`。
 
-SerialPort 遵循[语义化版本](https://semver.org/lang/zh-CN/)。推送 `vMAJOR.MINOR.PATCH` 格式的标签后，GitHub Actions 会验证标签与 `VERSION_NAME` 一致，构建 release AAR、提取 Java 类，并在 GitHub Releases 中发布带版本号的 JAR。
+## 能力边界与问题反馈
 
-## 安全注意事项
+SerialPort 只负责传输层访问，不定义消息分帧、设备协议、校验算法、请求响应关联、重连策略、身份认证或硬件安全控制。
 
-访问硬件设备节点及修改节点权限可能降低设备安全性。不要将不可信输入作为设备路径，生产系统也不应依赖全局可写权限。串口指令可能直接影响外接设备，应用层必须根据具体协议实现分帧、校验、超时及设备安全保护。
-
-接入前请阅读[软件声明](DISCLAIMER_zh.md)。
-
-## 参与贡献
-
-欢迎提交 Issue 和范围清晰的 Pull Request。报告设备相关问题时，请提供 Android 版本、硬件型号、ABI、串口设备路径、波特率、相关日志和最小复现方式。
+反馈问题时请提供 Android 版本、设备型号、ABI、串口路径、波特率、访问模式、权限状态及最小可复现通信过程。提交日志前请移除凭据和敏感业务数据。
 
 ## 开源协议
 
-Copyright (c) 2026 RelinRan。仓库所有者拥有版权的代码采用 [MIT License](LICENSE) 开源；带有独立许可证声明的文件仍适用其原有声明。
+仓库所有者拥有版权的代码按 [MIT License](LICENSE) 发布。部分文件保留独立版权和许可证声明，相应内容继续适用这些声明。将本库用于物理设备或特权设备前，请阅读[软件声明](DISCLAIMER_zh.md)。
