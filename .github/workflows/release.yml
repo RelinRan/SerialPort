@@ -2,6 +2,8 @@ name: Release AAR
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -36,6 +38,9 @@ jobs:
           set -euo pipefail
           project_version="$(sed -n 's/^VERSION_NAME=//p' gradle.properties)"
           tag_version="${GITHUB_REF_NAME#v}"
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            tag_version="${project_version}"
+          fi
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             tag_version="${{ inputs.version }}"
           fi
