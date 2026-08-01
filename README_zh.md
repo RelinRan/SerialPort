@@ -1,4 +1,4 @@
-# SerialPort
+# serial-api-android
 
 [English](README.md) | 简体中�?
 SerialPort 是面�?Linux 串口设备�?Kotlin 优先 Android SDK�?.x 版本使用协程、`StateFlow` �?`SharedFlow` 替代回调、Handler 和手动线程管理；它可直接�?Jetpack Compose 收集状态，�?SDK 本身不依�?Compose Runtime�?
@@ -71,7 +71,7 @@ when (val outcome = handle.completion.await()) {
 ## 构建
 
 ```shell
-./gradlew :library:testDebugUnitTest :library:assembleRelease
+./gradlew :serial-api-android:testDebugUnitTest :serial-api-android:assembleRelease
 ```
 
 推�?`v2.0.0` 标签后，GitHub Actions 会发�?`serialport-2.0.0.aar`�?
