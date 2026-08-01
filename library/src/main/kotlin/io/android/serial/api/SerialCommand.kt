@@ -10,6 +10,8 @@ data class SerialCommand(
     val delay: Duration? = null,
     val maxRetries: Int = 0,
     val retryDelay: Duration = Duration.ZERO,
+    val responseMatcher: ResponseMatcher? = null,
+    val responseTimeout: Duration? = null,
     val tag: String? = null,
     val id: String = UUID.randomUUID().toString()
 ) {
@@ -24,6 +26,7 @@ data class CommandHandle(val id: String, val completion: Deferred<CommandResult>
 
 sealed interface CommandResult {
     data class Sent(val bytes: Int) : CommandResult
+    data class Response(val data: ByteArray) : CommandResult
     data class TimedOut(val timeout: Duration) : CommandResult
     data class Failed(val error: SerialError) : CommandResult
     data object Cancelled : CommandResult

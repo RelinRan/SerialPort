@@ -35,6 +35,7 @@ class SerialSession(
     private var reader: Job? = null
     private var writer: Job? = null
     private var terminal = AtomicBoolean(false)
+    private var pendingResponse: QueuedCommand? = null
 
     val state: StateFlow<SerialState> = _state.asStateFlow()
     val events: SharedFlow<SerialEvent> = _events.asSharedFlow()
@@ -109,6 +110,11 @@ class SerialSession(
                     if (length > 0) {
                         val data = buffer.copyOf(length)
                         logger.log(SerialDirection.Rx, data, Instant.now())
+                        val waiting = pendingResponse
+                        if (waiting != null && waiting.command.responseMatcher?.matches(waiting.command.payload, data) == true) {
+                            waiting.result.complete(CommandResult.Response(data))
+                            pendingResponse = null
+                        }
                         emit(SerialEvent.DataReceived(data))
                     }
                 }
@@ -141,7 +147,18 @@ class SerialSession(
                 }
                 if (result is CommandResult.Sent) emit(SerialEvent.CommandSent(command.id, result.bytes))
                 if (result is CommandResult.TimedOut) emit(SerialEvent.CommandTimedOut(command.id, command.tag, timeout.toMillis()))
-                queued.result.complete(result)
+                if (result !is CommandResult.Sent || command.responseMatcher == null) queued.result.complete(result)
+                if (result is CommandResult.Sent && command.responseMatcher != null) {
+                    pendingResponse = queued
+                    val responseTimeout = command.responseTimeout ?: timeout
+                    scope.launch {
+                        kotlinx.coroutines.delay(responseTimeout.toMillis().coerceAtLeast(1))
+                        if (pendingResponse === queued) {
+                            pendingResponse = null
+                            queued.result.complete(CommandResult.TimedOut(responseTimeout))
+                        }
+                    }
+                }
             }
         }
     }
