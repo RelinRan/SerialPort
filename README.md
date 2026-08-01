@@ -4,23 +4,13 @@ English | [简体中文](README_zh.md)
 
 SerialPort is a Kotlin-first Android SDK for Linux serial devices. Version 2 uses coroutines, `StateFlow`, and `SharedFlow` instead of callbacks, handlers, and manually managed threads. It is designed for Jetpack Compose state collection without taking a Compose Runtime dependency.
 
-## Modules
-
-| Module | Use it for |
-| --- | --- |
-| `serialport-core` | Pure Kotlin state machine, commands, events, queueing, and transport contracts. |
-| `serialport-android` | Android serial transport, device scan, JNI loading, and native ABI packaging. |
-| `serialport-proxy` | Optional TCP forwarding for an existing serial session. |
-
-Most Android applications need only `serialport-android`. Add `serialport-proxy` only when exposing a connected serial session over TCP.
+The complete SDK is delivered as one Android Library. Its public API, state models, device scanner, JNI transport, and TCP proxy all live in `android.serial.port.api`.
 
 ## Install
 
 ```kotlin
 dependencies {
-    implementation("io.github.relinran:serialport-android:2.0.0")
-    // Optional:
-    implementation("io.github.relinran:serialport-proxy:2.0.0")
+    implementation("io.github.relinran:serialport:2.0.0")
 }
 ```
 
@@ -29,8 +19,7 @@ The Android AAR packages `libserial.so` for `arm64-v8a`, `armeabi-v7a`, `x86`, a
 ## Create a session
 
 ```kotlin
-val factory = AndroidSerialSessionFactory(applicationContext)
-val session = factory.create()
+val session = SerialPortApi.create(applicationContext)
 
 val result = session.connect(
     SerialConfig(
@@ -92,10 +81,10 @@ Queue capacity, overflow behavior, default write delay, and default timeout are 
 ## Build
 
 ```shell
-./gradlew :serialport-core:test :serialport-android:assembleRelease :serialport-proxy:assembleRelease
+./gradlew :library:testDebugUnitTest :library:assembleRelease
 ```
 
-Push a `v2.0.0` tag to publish `serialport-android-2.0.0.aar` and `serialport-proxy-2.0.0.aar` through GitHub Actions.
+Push a `v2.0.0` tag to publish `serialport-2.0.0.aar` through GitHub Actions.
 
 ## License
 

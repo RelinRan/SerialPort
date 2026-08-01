@@ -39,17 +39,16 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Build release AARs
-        run: ./gradlew :serialport-core:test :serialport-android:assembleRelease :serialport-proxy:assembleRelease --no-daemon --stacktrace
+      - name: Build release AAR
+        run: ./gradlew :library:testDebugUnitTest :library:assembleRelease --no-daemon --stacktrace
 
       - name: Collect release artifacts
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp serialport-android/build/outputs/aar/serialport-android-release.aar "dist/serialport-android-${{ steps.version.outputs.version }}.aar"
-          cp serialport-proxy/build/outputs/aar/serialport-proxy-release.aar "dist/serialport-proxy-${{ steps.version.outputs.version }}.aar"
-          unzip -l "dist/serialport-android-${{ steps.version.outputs.version }}.aar" | grep -F 'jni/arm64-v8a/libserial.so'
+          cp library/build/outputs/aar/library-release.aar "dist/serialport-${{ steps.version.outputs.version }}.aar"
+          unzip -l "dist/serialport-${{ steps.version.outputs.version }}.aar" | grep -F 'jni/arm64-v8a/libserial.so'
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2

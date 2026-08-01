@@ -1,0 +1,1 @@
+-keep class android.serial.port.api.** { *; }

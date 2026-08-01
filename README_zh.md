@@ -4,23 +4,13 @@
 
 SerialPort 是面向 Linux 串口设备的 Kotlin 优先 Android SDK。2.x 版本使用协程、`StateFlow` 和 `SharedFlow` 替代回调、Handler 和手动线程管理；它可直接被 Jetpack Compose 收集状态，但 SDK 本身不依赖 Compose Runtime。
 
-## 模块
-
-| 模块 | 职责 |
-| --- | --- |
-| `serialport-core` | 纯 Kotlin 状态机、命令、事件、队列和传输契约。 |
-| `serialport-android` | Android 串口传输、设备扫描、JNI 加载和原生 ABI 打包。 |
-| `serialport-proxy` | 可选 TCP 转发模块，复用已有串口会话。 |
-
-大多数 Android 项目只需要 `serialport-android`；只有需要通过 TCP 暴露已连接串口时才增加 `serialport-proxy`。
+完整 SDK 以一个 Android Library 交付。公开 API、状态模型、设备扫描、JNI 传输和 TCP 代理统一位于 `android.serial.port.api`。
 
 ## 接入
 
 ```kotlin
 dependencies {
-    implementation("io.github.relinran:serialport-android:2.0.0")
-    // 可选：
-    implementation("io.github.relinran:serialport-proxy:2.0.0")
+    implementation("io.github.relinran:serialport:2.0.0")
 }
 ```
 
@@ -29,8 +19,7 @@ Android AAR 内置 `arm64-v8a`、`armeabi-v7a`、`x86`、`x86_64` 的 `libserial
 ## 创建会话
 
 ```kotlin
-val factory = AndroidSerialSessionFactory(applicationContext)
-val session = factory.create()
+val session = SerialPortApi.create(applicationContext)
 
 val result = session.connect(
     SerialConfig(
@@ -92,10 +81,10 @@ when (val outcome = handle.completion.await()) {
 ## 构建
 
 ```shell
-./gradlew :serialport-core:test :serialport-android:assembleRelease :serialport-proxy:assembleRelease
+./gradlew :library:testDebugUnitTest :library:assembleRelease
 ```
 
-推送 `v2.0.0` 标签后，GitHub Actions 会发布 `serialport-android-2.0.0.aar` 和 `serialport-proxy-2.0.0.aar`。
+推送 `v2.0.0` 标签后，GitHub Actions 会发布 `serialport-2.0.0.aar`。
 
 ## 开源协议
 
