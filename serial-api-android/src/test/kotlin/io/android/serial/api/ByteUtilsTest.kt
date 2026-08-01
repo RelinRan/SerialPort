@@ -1,5 +1,6 @@
 package io.android.serial.api
 
+import java.nio.ByteOrder
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -7,24 +8,30 @@ import kotlin.test.assertFailsWith
 
 class ByteUtilsTest {
     @Test
-    fun convertsHexWithWhitespaceAndSeparators() {
-        assertEquals("00 FF 10", ByteUtils.toHex(byteArrayOf(0, -1, 0x10), " "))
-        assertContentEquals(byteArrayOf(0, -1, 0x10), ByteUtils.fromHex("00 ff\n10"))
+    fun convertsAllNumericTypesInBothByteOrders() {
+        for (order in arrayOf(ByteOrder.BIG_ENDIAN, ByteOrder.LITTLE_ENDIAN)) {
+            val short = (-12345).toShort()
+            val int = 0x12345678
+            val float = -12.5f
+            val double = 12345.6789
+            assertEquals(short, short.toByteArray(order).toShort(order = order))
+            assertEquals(int, int.toByteArray(order).toInt(order = order))
+            assertEquals(float.toBits(), float.toByteArray(order).toFloat(order = order).toBits())
+            assertEquals(double.toBits(), double.toByteArray(order).toDouble(order = order).toBits())
+        }
     }
 
     @Test
-    fun readsBothCommonByteOrders() {
-        val bytes = byteArrayOf(0x01, 0x02, 0x03, 0x04)
-        assertEquals(0x0201, ByteUtils.readUInt16LE(bytes))
-        assertEquals(0x0102, ByteUtils.readUInt16BE(bytes))
-        assertEquals(0x04030201, ByteUtils.readInt32LE(bytes))
-        assertEquals(0x01020304, ByteUtils.readInt32BE(bytes))
+    fun convertsHexAndConcatenates() {
+        assertEquals("00 FF 10", byteArrayOf(0, -1, 0x10).toHex(" "))
+        assertContentEquals(byteArrayOf(0, -1, 0x10), "00 ff\n10".hexToByteArray())
+        assertContentEquals(byteArrayOf(1, 2, 3), byteArrayOf(1).concat(byteArrayOf(2), byteArrayOf(3)))
     }
 
     @Test
-    fun rejectsInvalidHexAndRanges() {
-        assertFailsWith<IllegalArgumentException> { ByteUtils.fromHex("ABC") }
-        assertFailsWith<IllegalArgumentException> { ByteUtils.fromHex("GG") }
-        assertFailsWith<IllegalArgumentException> { ByteUtils.readUInt16LE(byteArrayOf(1), 0) }
+    fun rejectsInvalidInput() {
+        assertFailsWith<IllegalArgumentException> { "ABC".hexToByteArray() }
+        assertFailsWith<IllegalArgumentException> { "GG".hexToByteArray() }
+        assertFailsWith<IllegalArgumentException> { byteArrayOf(1).toInt() }
     }
 }

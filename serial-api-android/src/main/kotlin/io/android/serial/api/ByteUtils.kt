@@ -1,65 +1,36 @@
 package io.android.serial.api
 
-/** Common byte-array conversions used by serial protocols. */
-public object ByteUtils {
-    private val HEX = "0123456789ABCDEF".toCharArray()
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
-    @JvmStatic
-    public fun toHex(bytes: ByteArray, separator: String = ""): String = buildString(bytes.size * (2 + separator.length)) {
-        bytes.forEachIndexed { index, byte ->
-            if (index > 0) append(separator)
-            val value = byte.toInt() and 0xFF
-            append(HEX[value ushr 4])
-            append(HEX[value and 0x0F])
-        }
+/** Converts bytes to an uppercase hexadecimal string. */
+public fun ByteArray.toHex(separator: String = ""): String = joinToString(separator) { "%02X".format(it.toInt() and 0xFF) }
+
+/** Parses a hexadecimal string. Whitespace is ignored. */
+public fun String.hexToByteArray(): ByteArray {
+    val value = filterNot(Char::isWhitespace)
+    require(value.length % 2 == 0) { "Hex string must contain an even number of digits" }
+    return ByteArray(value.length / 2) { index ->
+        val high = value[index * 2].digitToIntOrNull(16)
+        val low = value[index * 2 + 1].digitToIntOrNull(16)
+        require(high != null && low != null) { "Invalid hexadecimal value: $this" }
+        ((high shl 4) or low).toByte()
     }
+}
 
-    @JvmStatic
-    public fun fromHex(value: String): ByteArray {
-        val normalized = value.filterNot(Char::isWhitespace)
-        require(normalized.length % 2 == 0) { "Hex string must contain an even number of digits" }
-        return ByteArray(normalized.length / 2) { index ->
-            val high = Character.digit(normalized[index * 2], 16)
-            val low = Character.digit(normalized[index * 2 + 1], 16)
-            require(high >= 0 && low >= 0) { "Invalid hexadecimal value: $value" }
-            ((high shl 4) or low).toByte()
-        }
-    }
+public fun ByteArray.toShort(offset: Int = 0, order: ByteOrder = ByteOrder.BIG_ENDIAN): Short = buffer(offset, Short.SIZE_BYTES, order).short
+public fun ByteArray.toInt(offset: Int = 0, order: ByteOrder = ByteOrder.BIG_ENDIAN): Int = buffer(offset, Int.SIZE_BYTES, order).int
+public fun ByteArray.toFloat(offset: Int = 0, order: ByteOrder = ByteOrder.BIG_ENDIAN): Float = buffer(offset, Float.SIZE_BYTES, order).float
+public fun ByteArray.toDouble(offset: Int = 0, order: ByteOrder = ByteOrder.BIG_ENDIAN): Double = buffer(offset, Double.SIZE_BYTES, order).double
 
-    @JvmStatic
-    public fun readUInt16LE(bytes: ByteArray, offset: Int = 0): Int {
-        checkRange(bytes, offset, 2)
-        return (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
-    }
+public fun Short.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray = ByteBuffer.allocate(Short.SIZE_BYTES).order(order).putShort(this).array()
+public fun Int.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray = ByteBuffer.allocate(Int.SIZE_BYTES).order(order).putInt(this).array()
+public fun Float.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray = ByteBuffer.allocate(Float.SIZE_BYTES).order(order).putFloat(this).array()
+public fun Double.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray = ByteBuffer.allocate(Double.SIZE_BYTES).order(order).putDouble(this).array()
 
-    @JvmStatic
-    public fun readUInt16BE(bytes: ByteArray, offset: Int = 0): Int {
-        checkRange(bytes, offset, 2)
-        return ((bytes[offset].toInt() and 0xFF) shl 8) or (bytes[offset + 1].toInt() and 0xFF)
-    }
+public fun ByteArray.concat(vararg arrays: ByteArray): ByteArray = this + arrays.fold(ByteArray(0)) { result, array -> result + array }
 
-    @JvmStatic
-    public fun readInt32LE(bytes: ByteArray, offset: Int = 0): Int {
-        checkRange(bytes, offset, 4)
-        return (bytes[offset].toInt() and 0xFF) or
-            ((bytes[offset + 1].toInt() and 0xFF) shl 8) or
-            ((bytes[offset + 2].toInt() and 0xFF) shl 16) or
-            (bytes[offset + 3].toInt() shl 24)
-    }
-
-    @JvmStatic
-    public fun readInt32BE(bytes: ByteArray, offset: Int = 0): Int {
-        checkRange(bytes, offset, 4)
-        return ((bytes[offset].toInt() and 0xFF) shl 24) or
-            ((bytes[offset + 1].toInt() and 0xFF) shl 16) or
-            ((bytes[offset + 2].toInt() and 0xFF) shl 8) or
-            (bytes[offset + 3].toInt() and 0xFF)
-    }
-
-    @JvmStatic
-    public fun concat(vararg arrays: ByteArray): ByteArray = arrays.fold(ByteArray(0)) { result, array -> result + array }
-
-    private fun checkRange(bytes: ByteArray, offset: Int, length: Int) {
-        require(offset >= 0 && offset <= bytes.size - length) { "Range [$offset, ${offset + length}) is outside byte array" }
-    }
+private fun ByteArray.buffer(offset: Int, length: Int, order: ByteOrder): ByteBuffer {
+    require(offset >= 0 && offset <= size - length) { "Range [$offset, ${offset + length}) is outside byte array" }
+    return ByteBuffer.wrap(this, offset, length).order(order)
 }
