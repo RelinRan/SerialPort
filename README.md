@@ -2,26 +2,57 @@
 
 English | [简体中文](README_zh.md)
 
-SerialPort is a Kotlin-first Android SDK for Linux serial devices. Version 2 uses coroutines, `StateFlow`, and `SharedFlow` instead of callbacks, handlers, and manually managed threads. It is designed for Jetpack Compose state collection without taking a Compose Runtime dependency.
+`serial-api-android` is a Kotlin-first Android serial communication SDK for Linux serial devices. It ships as one Android Library module and exposes a protocol-neutral API in `io.android.serial.api`.
 
-The complete SDK is delivered as one Android Library. Its public API, state models, device scanner, JNI transport, and TCP proxy all live in `io.android.serial.api`.
+## Features
+
+- Coroutine-based serial sessions with `StateFlow` and `SharedFlow`
+- Ordered write queue, write timeout, retry, and queue overflow policies
+- Optional request/response matching with per-command response timeout
+- Configurable automatic reconnect with exponential backoff
+- Incremental frame parsing for fragmented and coalesced reads
+- Configurable header, footer, length field, byte order, checksum range, and size limits
+- Built-in XOR-8, SUM-8, and CRC16-Modbus checksums plus custom checksum support
+- Kotlin extensions for hexadecimal, numeric, byte-order, and bit conversions
+- Pluggable TX/RX diagnostics logging
+- JNI serial transport with `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64` binaries
+- TCP proxy support
+
+## Requirements
+
+- Android API 26+
+- Kotlin/JVM target 17
+- No Compose dependency. Compose applications can collect the exposed flows directly.
 
 ## Install
 
+The recommended distribution is the AAR attached to a GitHub Release. Download `serial-api-android-<version>.aar` and place it in your application's `libs` directory:
+
 ```kotlin
+repositories {
+    flatDir { dirs("libs") }
+}
+
 dependencies {
-    implementation("io.github.relinran:serialport:2.0.0")
+    implementation(files("libs/serial-api-android-2.0.0.aar"))
 }
 ```
 
-The Android AAR packages `libserial.so` for `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64`. The minimum Android API is 26.
-
-## Create a session
+The project is also Maven-publish ready. When a Maven repository is configured for the project, use:
 
 ```kotlin
-val session = SerialPortApi.create(applicationContext)
+implementation("io.github.relinran:serial-api-android:2.0.0")
+```
 
-val result = session.connect(
+## Quick start
+
+```kotlin
+import io.android.serial.api.SerialConfig
+import io.android.serial.api.SerialPortApi
+import io.android.serial.api.SerialMode
+
+val session = SerialPortApi.create(applicationContext)
+val connected = session.connect(
     SerialConfig(
         path = "/dev/ttyS4",
         baudRate = 115_200,
@@ -29,86 +60,147 @@ val result = session.connect(
         readBufferSize = 512
     )
 )
+
+if (connected.isSuccess) {
+    val handle = session.send(SerialCommand(byteArrayOf(0x01, 0x03, 0x00, 0x00)))
+    val result = handle.completion.await()
+}
 ```
 
-`SerialSession` owns one read task and one ordered write task. It is safe to call `connect()` or `disconnect()` repeatedly. `close()` is terminal and releases the session resources.
+Call `disconnect()` for a reusable session. Call `close()` when the session is permanently disposed.
 
-## Observe state in Compose
-
-The SDK does not require Compose. A Compose screen can consume state directly:
+## Observe state and events
 
 ```kotlin
-val state by session.state.collectAsStateWithLifecycle()
+session.state.collect { state ->
+    // Idle, Connecting, Connected, Closing, Failed, or Closed
+}
 
-LaunchedEffect(session) {
-    session.events.collect { event ->
-        when (event) {
-            is SerialEvent.DataReceived -> consume(event.data)
-            is SerialEvent.ErrorRaised -> showError(event.error)
-            else -> Unit
-        }
+session.events.collect { event ->
+    when (event) {
+        is SerialEvent.DataReceived -> consume(event.data)
+        is SerialEvent.ErrorRaised -> report(event.error)
+        is SerialEvent.Reconnecting -> reportRetry(event.attempt, event.delayMillis)
+        SerialEvent.ReconnectSucceeded -> reportRecovered()
+        SerialEvent.ReconnectExhausted -> reportDisconnected()
+        else -> Unit
     }
 }
 ```
 
-`state` is replayable and represents the current session: `Idle`, `Connecting`, `Connected`, `Closing`, `Failed`, or `Closed`. `events` contains one-time byte, command, timeout, and error notifications.
+## Request and response
 
-## Send bytes
+Protocol matching remains application-configurable:
 
 ```kotlin
 val handle = session.send(
     SerialCommand(
-        payload = byteArrayOf(0x01, 0x03, 0x00, 0x00),
-        timeout = 500.milliseconds,
-        tag = "read-registers"
+        payload = request,
+        responseMatcher = ResponseMatchers.prefix(byteArrayOf(0xAA.toByte())),
+        responseTimeout = Duration.ofSeconds(2),
+        maxRetries = 2,
+        retryDelay = Duration.ofMillis(100)
     )
 )
 
-when (val outcome = handle.completion.await()) {
-    is CommandResult.Sent -> log("sent ${outcome.bytes} bytes")
-    is CommandResult.TimedOut -> retry()
-    is CommandResult.Failed -> showError(outcome.error)
-    CommandResult.Cancelled -> Unit
+when (val result = handle.completion.await()) {
+    is CommandResult.Response -> consume(result.data)
+    is CommandResult.TimedOut -> retryAtProtocolLevel()
+    is CommandResult.Failed -> report(result.error)
+    else -> Unit
 }
 ```
 
-Queue capacity, overflow behavior, default write delay, and default timeout are configured through `QueueConfig`. The SDK transports raw byte streams. Protocol framing, checksums, request matching, retry policy, and hardware safety controls belong to the application layer.
+Implement `ResponseMatcher` for device-specific command IDs, addresses, sequence numbers, or any other protocol rule.
 
-## Byte conversions
+## Frame parsing
 
-The library provides Kotlin extension functions for common protocol conversions. Numeric and bit conversions support both byte orders:
+`SerialFrameParser` handles half frames, sticky packets, noise before a header, size limits, footer checks, and optional checksums:
 
 ```kotlin
-import io.android.serial.api.hexToByteArray
-import io.android.serial.api.toByteArray
-import io.android.serial.api.toBooleanArray
-import io.android.serial.api.toFloat
-import io.android.serial.api.toInt
-import java.nio.ByteOrder
+val parser = SerialFrameParser(
+    FrameConfig(
+        header = byteArrayOf(0x55, 0xAA.toByte()),
+        lengthOffset = 2,
+        lengthSize = 2,
+        lengthByteOrder = ByteOrder.LITTLE_ENDIAN,
+        footer = byteArrayOf(0x0D, 0x0A),
+        checksum = Checksums.Crc16Modbus,
+        maximumFrameSize = 2048
+    )
+)
 
-val little = ByteOrder.LITTLE_ENDIAN
-val payload = 0x12345678.toByteArray(little)
-val value = payload.toInt(order = little)
-val temperature = (-12.5f).toByteArray(little).toFloat(order = little)
-val flags = payload.toBooleanArray(little)
-val oneByte = flags.copyOf(8).toByte(little)
+val parsed = parser.offerDetailed(incomingBytes)
+parsed.frames.forEach(::consumeFrame)
+parsed.errors.forEach(::reportParseError)
+```
+
+Custom checksums implement `Checksum`:
+
+```kotlin
+val checksum = Checksum { bytes -> byteArrayOf(bytes.sumOf { it.toInt() and 0xFF }.toByte()) }
+```
+
+## Byte utilities
+
+All conversions are Kotlin extensions and support both byte orders:
+
+```kotlin
+val order = ByteOrder.LITTLE_ENDIAN
+val encoded = 0x12345678.toByteArray(order)
+val number = encoded.toInt(order = order)
+val bits = encoded.toBooleanArray(order)
+val oneByte = bits.copyOf(8).toByte(order)
 val raw = "01 FF 10".hexToByteArray()
 ```
 
-Available extensions include `Short`, `Int`, `Float`, and `Double` conversions, hexadecimal parsing, byte-array concatenation, and single-byte or multi-byte `BooleanArray` conversions. A `BooleanArray` converted to one byte must contain exactly eight values.
-## Device access
+Supported conversions include `Short`, `Int`, `Float`, `Double`, hexadecimal strings, concatenation, and single/multiple-byte bit arrays.
 
-`AndroidDeviceScanner` exposes device candidates as a Flow. A device node must be readable and writable by the application. Do not rely on root or globally writable permissions for production deployments; configure device ownership and SELinux policy in the firmware instead.
+## Reconnect and logging
 
-## Build
+```kotlin
+val config = SerialConfig(
+    path = "/dev/ttyS4",
+    baudRate = 115_200,
+    reconnect = ReconnectPolicy(
+        enabled = true,
+        maxAttempts = 5,
+        initialDelay = Duration.ofMillis(500),
+        maxDelay = Duration.ofSeconds(10)
+    )
+)
+
+val session = SerialPortApi.create(
+    context = applicationContext,
+    logger = SerialLogger { direction, data, timestamp ->
+        println("$timestamp $direction ${data.toHex(\" \")}")
+    }
+)
+```
+
+## Build locally
 
 ```shell
 ./gradlew :library:testDebugUnitTest :library:assembleRelease
 ```
 
-Push a `v2.0.0` tag to publish `serialport-2.0.0.aar` through GitHub Actions.
+The local AAR is generated at `library/build/outputs/aar/library-release.aar`.
 
-## License
+## GitHub Actions release
 
-Repository-owned code is available under the [MIT License](LICENSE). Read the [Software Disclaimer](DISCLAIMER.md) before controlling physical equipment or using privileged device nodes.
+The workflow in `.github/workflows/release.yml` runs for tags matching `v*.*.*`. The tag must match `VERSION_NAME` in `gradle.properties` exactly:
 
+```shell
+git tag v2.0.0
+git push origin v2.0.0
+```
+
+The workflow runs unit tests, builds the release AAR, verifies the native ABI files, and creates a GitHub Release with the downloadable asset:
+
+```text
+serial-api-android-2.0.0.aar
+```
+
+## License and disclaimer
+
+Code is available under the [MIT License](LICENSE). Read [DISCLAIMER.md](DISCLAIMER.md) before controlling physical equipment or privileged device nodes.
