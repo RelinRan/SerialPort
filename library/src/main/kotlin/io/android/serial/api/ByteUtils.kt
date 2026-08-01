@@ -1,4 +1,4 @@
-package android.serial.port.api
+package io.android.serial.api
 
 /** Common byte-array conversions used by serial protocols. */
 public object ByteUtils {

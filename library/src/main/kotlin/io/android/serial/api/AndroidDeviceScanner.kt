@@ -1,4 +1,4 @@
-﻿package android.serial.port.api
+package io.android.serial.api
 
 import android.content.Context
 import java.io.File

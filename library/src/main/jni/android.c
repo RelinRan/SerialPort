@@ -78,3 +78,4 @@ void changeState(JNIEnv *env, jobject thiz, ProxyState newstate)
 }
 
 #endif /* ANDROID */
+

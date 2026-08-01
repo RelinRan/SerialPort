@@ -1,4 +1,4 @@
-﻿package android.serial.port.api
+package io.android.serial.api
 
 interface SerialTransport {
     suspend fun open(config: SerialConfig)

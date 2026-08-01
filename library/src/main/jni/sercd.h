@@ -180,3 +180,4 @@ void ModemStateNotified();
 void LogPortSettings(unsigned long speed, unsigned char datasize, unsigned char parity,
                      unsigned char stopsize, unsigned char outflow, unsigned char inflow);
 #endif /* SERCD_H */
+

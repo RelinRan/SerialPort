@@ -4,7 +4,7 @@ English | [简体中文](README_zh.md)
 
 SerialPort is a Kotlin-first Android SDK for Linux serial devices. Version 2 uses coroutines, `StateFlow`, and `SharedFlow` instead of callbacks, handlers, and manually managed threads. It is designed for Jetpack Compose state collection without taking a Compose Runtime dependency.
 
-The complete SDK is delivered as one Android Library. Its public API, state models, device scanner, JNI transport, and TCP proxy all live in `android.serial.port.api`.
+The complete SDK is delivered as one Android Library. Its public API, state models, device scanner, JNI transport, and TCP proxy all live in `io.android.serial.api`.
 
 ## Install
 

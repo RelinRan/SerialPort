@@ -1012,3 +1012,4 @@ ModemStateNotified()
 }
 
 #endif /* WIN32 */
+

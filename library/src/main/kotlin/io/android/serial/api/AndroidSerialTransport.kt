@@ -1,4 +1,4 @@
-﻿package android.serial.port.api
+package io.android.serial.api
 
 import android.content.Context
 import java.io.File
@@ -15,7 +15,7 @@ class AndroidSerialTransport(private val context: Context) : SerialTransport {
         val device = File(config.path)
         if (!device.exists()) throw AndroidSerialException(SerialError.DeviceNotFound)
         if (!device.canRead() || !device.canWrite()) throw AndroidSerialException(SerialError.PermissionDenied)
-        android.serial.port.api.SerialPort.open(config.path, config.baudRate, config.mode.ordinal).also { fd ->
+        io.android.serial.api.SerialPort.open(config.path, config.baudRate, config.mode.ordinal).also { fd ->
             descriptor = fd
             input = FileInputStream(fd)
             output = FileOutputStream(fd)

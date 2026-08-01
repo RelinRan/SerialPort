@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "android.serial.port.api"
+    namespace = "io.android.serial.api"
     compileSdk = 35
     defaultConfig {
         minSdk = 26

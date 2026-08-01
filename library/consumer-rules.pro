@@ -1,1 +1,1 @@
--keep class android.serial.port.api.** { *; }
+-keep class io.android.serial.api.** { *; }

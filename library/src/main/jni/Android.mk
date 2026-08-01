@@ -6,3 +6,4 @@ LOCAL_SRC_FILES := serial.c sercd.c android.c unix.c
 LOCAL_CFLAGS    := -DVERSION=\"3.0.0\"
 LOCAL_LDLIBS    := -llog
 include $(BUILD_SHARED_LIBRARY)
+

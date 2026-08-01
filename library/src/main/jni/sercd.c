@@ -1238,7 +1238,7 @@ int
 main(int argc, char **argv)
 #else
 
-__attribute__((unused)) JNIEXPORT jint JNICALL Java_android_serial_port_api_SercdService_main
+__attribute__((unused)) JNIEXPORT jint JNICALL Java_io_android_serial_api_SercdService_main
 (JNIEnv *env, jobject thiz, jstring serialport, jstring netinterface, jint port)
 #endif
 {
@@ -1653,10 +1653,11 @@ __attribute__((unused)) JNIEXPORT jint JNICALL Java_android_serial_port_api_Serc
 }
 
 #ifdef ANDROID
-JNIEXPORT void JNICALL Java_android_serial_port_api_SercdService_exit(JNIEnv *env, jobject thiz)
+JNIEXPORT void JNICALL Java_io_android_serial_api_SercdService_exit(JNIEnv *env, jobject thiz)
 {
 	/* Close the files descriptors to force the next call to "select" to fail. */
 	DropConnection(DeviceFd, InSocketFd, OutSocketFd);
 	close(*LSocketFd);
 }
 #endif
+

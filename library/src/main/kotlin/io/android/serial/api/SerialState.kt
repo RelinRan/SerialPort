@@ -1,4 +1,4 @@
-﻿package android.serial.port.api
+package io.android.serial.api
 
 sealed interface SerialState {
     data object Idle : SerialState
