@@ -118,12 +118,19 @@ class SerialSession(
                 val delay = command.delay ?: activeConfig.queue.defaultWriteDelay
                 kotlinx.coroutines.delay(delay.toMillis())
                 val timeout = command.timeout ?: activeConfig.queue.defaultTimeout
-                val result: CommandResult = try {
-                    withTimeoutOrNull(timeout.toMillis().coerceAtLeast(1)) { transport.write(command.payload) }
-                        ?.let { CommandResult.Sent(it) }
-                        ?: CommandResult.TimedOut(timeout)
-                } catch (failure: Throwable) {
-                    CommandResult.Failed(SerialError.WriteFailed(failure))
+                var result: CommandResult = CommandResult.Failed(SerialError.WriteFailed(null))
+                repeat(command.maxRetries + 1) { attempt ->
+                    if (result is CommandResult.Sent) return@repeat
+                    if (attempt > 0) kotlinx.coroutines.delay(command.retryDelay.toMillis())
+                    result = try {
+                        withTimeoutOrNull(timeout.toMillis().coerceAtLeast(1)) { transport.write(command.payload) }
+                            ?.let { CommandResult.Sent(it) }
+                            ?: CommandResult.TimedOut(timeout)
+                    } catch (failure: CancellationException) {
+                        throw failure
+                    } catch (failure: Throwable) {
+                        CommandResult.Failed(SerialError.WriteFailed(failure))
+                    }
                 }
                 if (result is CommandResult.Sent) emit(SerialEvent.CommandSent(command.id, result.bytes))
                 if (result is CommandResult.TimedOut) emit(SerialEvent.CommandTimedOut(command.id, command.tag, timeout.toMillis()))

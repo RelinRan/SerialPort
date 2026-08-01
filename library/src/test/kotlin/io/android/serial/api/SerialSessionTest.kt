@@ -37,11 +37,23 @@ class SerialSessionTest {
         session.close()
     }
 
+    @Test
+    fun retriesTimedOutWrites() = runBlocking {
+        val transport = FakeTransport(writeDelay = 20)
+        val session = SerialSession(transport)
+        session.connect(SerialConfig("test", 115200))
+        val result = session.send(SerialCommand(byteArrayOf(1), timeout = Duration.ofMillis(5), maxRetries = 2)).completion.await()
+        assertIs<CommandResult.TimedOut>(result)
+        assertEquals(3, transport.attempts)
+        session.close()
+    }
+
     private class FakeTransport(private val writeDelay: Long = 0) : SerialTransport {
         val writes = mutableListOf<ByteArray>()
+        var attempts = 0
         override suspend fun open(config: SerialConfig) = Unit
         override suspend fun read(buffer: ByteArray): Int { delay(Long.MAX_VALUE); return 0 }
-        override suspend fun write(payload: ByteArray): Int { delay(writeDelay); writes += payload; return payload.size }
+        override suspend fun write(payload: ByteArray): Int { attempts++; delay(writeDelay); writes += payload; return payload.size }
         override suspend fun close() = Unit
     }
 }

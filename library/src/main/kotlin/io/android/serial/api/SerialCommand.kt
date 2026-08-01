@@ -8,10 +8,16 @@ data class SerialCommand(
     val payload: ByteArray,
     val timeout: Duration? = null,
     val delay: Duration? = null,
+    val maxRetries: Int = 0,
+    val retryDelay: Duration = Duration.ZERO,
     val tag: String? = null,
     val id: String = UUID.randomUUID().toString()
 ) {
-    init { require(payload.isNotEmpty()) { "Serial payload must not be empty" } }
+    init {
+        require(payload.isNotEmpty()) { "Serial payload must not be empty" }
+        require(maxRetries >= 0) { "Max retries cannot be negative" }
+        require(!retryDelay.isNegative) { "Retry delay cannot be negative" }
+    }
 }
 
 data class CommandHandle(val id: String, val completion: Deferred<CommandResult>)
