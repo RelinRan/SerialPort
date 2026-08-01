@@ -1,7 +1,0 @@
-io.github.relinran.serialport.proxy.serialport-proxy-pngs-0 E:\Android\GitHub\SerialPort\serialport-proxy\build\generated\res\pngs\release
-io.github.relinran.serialport.proxy.serialport-proxy-resValues-1 E:\Android\GitHub\SerialPort\serialport-proxy\build\generated\res\resValues\release
-io.github.relinran.serialport.proxy.serialport-proxy-mergeReleaseResources-2 E:\Android\GitHub\SerialPort\serialport-proxy\build\intermediates\incremental\release\mergeReleaseResources\merged.dir
-io.github.relinran.serialport.proxy.serialport-proxy-mergeReleaseResources-3 E:\Android\GitHub\SerialPort\serialport-proxy\build\intermediates\incremental\release\mergeReleaseResources\stripped.dir
-io.github.relinran.serialport.proxy.serialport-proxy-release-4 E:\Android\GitHub\SerialPort\serialport-proxy\build\intermediates\merged_res\release\mergeReleaseResources
-io.github.relinran.serialport.proxy.serialport-proxy-main-5 E:\Android\GitHub\SerialPort\serialport-proxy\src\main\res
-io.github.relinran.serialport.proxy.serialport-proxy-release-6 E:\Android\GitHub\SerialPort\serialport-proxy\src\release\res
