@@ -40,14 +40,14 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build release AAR
-        run: ./gradlew :serial-api-android:testDebugUnitTest :serial-api-android:assembleRelease --no-daemon --stacktrace
+        run: ./gradlew :library:testDebugUnitTest :library:assembleRelease --no-daemon --stacktrace
 
       - name: Collect release artifacts
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp serial-api-android/build/outputs/aar/serial-api-android-release.aar "dist/serial-api-android-${{ steps.version.outputs.version }}.aar"
+          cp library/build/outputs/aar/library-release.aar "dist/serial-api-android-${{ steps.version.outputs.version }}.aar"
           unzip -l "dist/serial-api-android-${{ steps.version.outputs.version }}.aar" | grep -F 'jni/arm64-v8a/libserial.so'
 
       - name: Publish GitHub Release

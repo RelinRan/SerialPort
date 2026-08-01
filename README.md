@@ -81,7 +81,7 @@ Queue capacity, overflow behavior, default write delay, and default timeout are 
 ## Build
 
 ```shell
-./gradlew :serial-api-android:testDebugUnitTest :serial-api-android:assembleRelease
+./gradlew :library:testDebugUnitTest :library:assembleRelease
 ```
 
 Push a `v2.0.0` tag to publish `serialport-2.0.0.aar` through GitHub Actions.

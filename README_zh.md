@@ -71,7 +71,7 @@ when (val outcome = handle.completion.await()) {
 ## 构建
 
 ```shell
-./gradlew :serial-api-android:testDebugUnitTest :serial-api-android:assembleRelease
+./gradlew :library:testDebugUnitTest :library:assembleRelease
 ```
 
 推�?`v2.0.0` 标签后，GitHub Actions 会发�?`serialport-2.0.0.aar`�?
