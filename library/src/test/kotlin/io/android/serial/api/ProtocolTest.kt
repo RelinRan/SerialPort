@@ -16,7 +16,7 @@ class ProtocolTest {
 
     @Test
     fun parsesFragmentedAndCoalescedFrames() {
-        val parser = SerialFrameParser(byteArrayOf(0x55, 0xAA.toByte()), lengthOffset = 2)
+        val parser = SerialFrameParser(FrameConfig(byteArrayOf(0x55, 0xAA.toByte()), lengthOffset = 2))
         val frames = parser.offer(byteArrayOf(0x00, 0x55, 0xAA.toByte(), 0x02, 0x10)) +
             parser.offer(byteArrayOf(0x20, 0x55, 0xAA.toByte(), 0x01, 0x7F))
         assertEquals(2, frames.size)
@@ -26,7 +26,7 @@ class ProtocolTest {
 
     @Test
     fun dropsFramesWithInvalidChecksum() {
-        val parser = SerialFrameParser(byteArrayOf(0x55), lengthOffset = 1, checksum = Checksums.Xor8)
+        val parser = SerialFrameParser(FrameConfig(byteArrayOf(0x55), lengthOffset = 1, checksum = Checksums.Xor8))
         val validBody = byteArrayOf(0x55, 0x02, 0x10)
         val valid = validBody.withChecksum(Checksums.Xor8)
         val invalid = byteArrayOf(0x55, 0x02, 0x10, 0x00)
