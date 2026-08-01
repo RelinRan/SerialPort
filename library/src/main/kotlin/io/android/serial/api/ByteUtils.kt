@@ -41,6 +41,10 @@ public fun ByteArray.toBooleanArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): Bo
     return result
 }
 
+/** Returns the eight bits of this byte in the selected wire order. */
+public fun Byte.toBooleanArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): BooleanArray =
+    byteArrayOf(this).toBooleanArray(order)
+
 /** Packs bits in wire order into bytes. The bit count must be byte-aligned. */
 public fun BooleanArray.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray {
     require(size % Byte.SIZE_BITS == 0) { "Boolean array length must be a multiple of 8" }
@@ -54,6 +58,19 @@ public fun BooleanArray.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): By
         }
         value.toByte()
     }
+}
+
+/** Packs exactly eight bits into one byte. */
+public fun BooleanArray.toByte(order: ByteOrder = ByteOrder.BIG_ENDIAN): Byte {
+    require(size == Byte.SIZE_BITS) { "Boolean array length must be exactly 8" }
+    var value = 0
+    forEachIndexed { bitIndex, bit ->
+        if (bit) {
+            val shift = if (order == ByteOrder.BIG_ENDIAN) 7 - bitIndex else bitIndex
+            value = value or (1 shl shift)
+        }
+    }
+    return value.toByte()
 }
 
 public fun ByteArray.concat(vararg arrays: ByteArray): ByteArray = this + arrays.fold(ByteArray(0)) { result, array -> result + array }

@@ -42,6 +42,9 @@ class ByteUtilsTest {
             listOf(true, false, false, false, false, false, false, true),
             byteArrayOf(0x81.toByte()).toBooleanArray(ByteOrder.LITTLE_ENDIAN).toList()
         )
+        for (order in arrayOf(ByteOrder.BIG_ENDIAN, ByteOrder.LITTLE_ENDIAN)) {
+            assertEquals(0xA6.toByte(), 0xA6.toByte().toBooleanArray(order).toByte(order))
+        }
     }
 
     @Test
@@ -50,5 +53,6 @@ class ByteUtilsTest {
         assertFailsWith<IllegalArgumentException> { "GG".hexToByteArray() }
         assertFailsWith<IllegalArgumentException> { byteArrayOf(1).toInt() }
         assertFailsWith<IllegalArgumentException> { BooleanArray(7).toByteArray() }
+        assertFailsWith<IllegalArgumentException> { BooleanArray(7).toByte() }
     }
 }
