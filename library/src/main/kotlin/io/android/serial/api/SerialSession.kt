@@ -36,6 +36,7 @@ class SerialSession(
     private var writer: Job? = null
     private var terminal = AtomicBoolean(false)
     private var pendingResponse: QueuedCommand? = null
+    private var reconnecting = AtomicBoolean(false)
 
     val state: StateFlow<SerialState> = _state.asStateFlow()
     val events: SharedFlow<SerialEvent> = _events.asSharedFlow()
@@ -167,6 +168,36 @@ class SerialSession(
         _state.value = SerialState.Failed(error, recoverable = true)
         emit(SerialEvent.ErrorRaised(error))
         emit(SerialEvent.StateChanged(_state.value))
+        val activeConfig = config
+        if (activeConfig?.reconnect?.enabled == true && reconnecting.compareAndSet(false, true) && !terminal.get()) {
+            scope.launch { reconnect(activeConfig) }
+        }
+    }
+
+    private suspend fun reconnect(activeConfig: SerialConfig) {
+        try {
+            reader?.cancel(); writer?.cancel()
+            transport.close()
+            repeat(activeConfig.reconnect.maxAttempts) { attempt ->
+                if (terminal.get()) return
+                kotlinx.coroutines.delay(activeConfig.reconnect.delayFor(attempt).toMillis())
+                _state.value = SerialState.Connecting
+                emit(SerialEvent.StateChanged(SerialState.Connecting))
+                runCatching {
+                    transport.open(activeConfig)
+                    commands = Channel(activeConfig.queue.capacity)
+                    startWorkers(activeConfig)
+                    val connected = SerialState.Connected(activeConfig)
+                    _state.value = connected
+                    emit(SerialEvent.StateChanged(connected))
+                }.onSuccess { return }.onFailure { failure ->
+                    val error = SerialError.OpenFailed(failure)
+                    emit(SerialEvent.ErrorRaised(error))
+                }
+            }
+        } finally {
+            reconnecting.set(false)
+        }
     }
 
     private suspend fun emit(event: SerialEvent) { _events.emit(event) }
