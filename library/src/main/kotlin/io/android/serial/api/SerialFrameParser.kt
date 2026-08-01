@@ -6,7 +6,8 @@ public class SerialFrameParser(
     private val lengthOffset: Int,
     private val lengthSize: Int = 1,
     private val lengthIncludesHeader: Boolean = false,
-    private val maxFrameSize: Int = 4096
+    private val maxFrameSize: Int = 4096,
+    private val checksum: Checksum? = null
 ) {
     private var pending = ByteArray(0)
 
@@ -28,8 +29,9 @@ public class SerialFrameParser(
             val frameSize = if (lengthIncludesHeader) declared else declared + header.size + lengthSize
             if (frameSize < header.size || frameSize > maxFrameSize) { pending = pending.copyOfRange(header.size, pending.size); continue }
             if (pending.size < frameSize) break
-            frames += pending.copyOf(frameSize)
+            val frame = pending.copyOf(frameSize)
             pending = pending.copyOfRange(frameSize, pending.size)
+            if (checksum == null || frame.hasChecksum(checksum)) frames += frame
         }
         return frames
     }
