@@ -1,6 +1,7 @@
 package io.android.serial.api
 
 import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -23,7 +24,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 class SerialSession(
     private val transport: SerialTransport,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val logger: SerialLogger = NoOpSerialLogger
 ) : AutoCloseable {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
     private val _state = MutableStateFlow<SerialState>(SerialState.Idle)
@@ -104,7 +106,11 @@ class SerialSession(
             try {
                 while (true) {
                     val length = transport.read(buffer)
-                    if (length > 0) emit(SerialEvent.DataReceived(buffer.copyOf(length)))
+                    if (length > 0) {
+                        val data = buffer.copyOf(length)
+                        logger.log(SerialDirection.Rx, data, Instant.now())
+                        emit(SerialEvent.DataReceived(data))
+                    }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -124,6 +130,7 @@ class SerialSession(
                     if (attempt > 0) kotlinx.coroutines.delay(command.retryDelay.toMillis())
                     result = try {
                         withTimeoutOrNull(timeout.toMillis().coerceAtLeast(1)) { transport.write(command.payload) }
+                            ?.also { logger.log(SerialDirection.Tx, command.payload, Instant.now()) }
                             ?.let { CommandResult.Sent(it) }
                             ?: CommandResult.TimedOut(timeout)
                     } catch (failure: CancellationException) {
