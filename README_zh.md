@@ -77,3 +77,25 @@ when (val outcome = handle.completion.await()) {
 æŽ¨é€?`v2.0.0` æ ‡ç­¾åŽï¼ŒGitHub Actions ä¼šå‘å¸?`serialport-2.0.0.aar`ã€?
 ## å¼€æºåè®?
 ä»“åº“æ‰€æœ‰è€…æ‹¥æœ‰ç‰ˆæƒçš„ä»£ç é‡‡ç”¨ [MIT License](LICENSE) å¼€æºã€‚æŽ§åˆ¶ç‰©ç†è®¾å¤‡æˆ–è®¿é—®ç‰¹æƒè®¾å¤‡èŠ‚ç‚¹å‰ï¼Œè¯·é˜…è¯»[è½¯ä»¶å£°æ˜Ž](DISCLAIMER_zh.md)ã€?
+## ×Ö½Ú×ª»»
+
+¿âÌá¹© Kotlin À©Õ¹º¯Êý´¦Àí³£¼ûÐ­ÒéÊý¾Ý£¬²¢Ö§³Ö´ó¶ËºÍÐ¡¶Ë£º
+
+```kotlin
+import io.android.serial.api.hexToByteArray
+import io.android.serial.api.toByteArray
+import io.android.serial.api.toBooleanArray
+import io.android.serial.api.toFloat
+import io.android.serial.api.toInt
+import java.nio.ByteOrder
+
+val little = ByteOrder.LITTLE_ENDIAN
+val payload = 0x12345678.toByteArray(little)
+val value = payload.toInt(order = little)
+val temperature = (-12.5f).toByteArray(little).toFloat(order = little)
+val flags = payload.toBooleanArray(little)
+val oneByte = flags.copyOf(8).toByte(little)
+val raw = "01 FF 10".hexToByteArray()
+```
+
+Ö§³Ö `Short`¡¢`Int`¡¢`Float`¡¢`Double`¡¢Ê®Áù½øÖÆ½âÎö¡¢×Ö½ÚÊý×éÆ´½Ó£¬ÒÔ¼°µ¥×Ö½ÚºÍ¶à×Ö½Ú `BooleanArray` ×ª»»¡£×ª»»Îªµ¥×Ö½ÚÊ±£¬`BooleanArray` ±ØÐëÕýºÃ°üº¬ 8 ¸öÔªËØ¡£

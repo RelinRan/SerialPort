@@ -74,6 +74,28 @@ when (val outcome = handle.completion.await()) {
 
 Queue capacity, overflow behavior, default write delay, and default timeout are configured through `QueueConfig`. The SDK transports raw byte streams. Protocol framing, checksums, request matching, retry policy, and hardware safety controls belong to the application layer.
 
+## Byte conversions
+
+The library provides Kotlin extension functions for common protocol conversions. Numeric and bit conversions support both byte orders:
+
+```kotlin
+import io.android.serial.api.hexToByteArray
+import io.android.serial.api.toByteArray
+import io.android.serial.api.toBooleanArray
+import io.android.serial.api.toFloat
+import io.android.serial.api.toInt
+import java.nio.ByteOrder
+
+val little = ByteOrder.LITTLE_ENDIAN
+val payload = 0x12345678.toByteArray(little)
+val value = payload.toInt(order = little)
+val temperature = (-12.5f).toByteArray(little).toFloat(order = little)
+val flags = payload.toBooleanArray(little)
+val oneByte = flags.copyOf(8).toByte(little)
+val raw = "01 FF 10".hexToByteArray()
+```
+
+Available extensions include `Short`, `Int`, `Float`, and `Double` conversions, hexadecimal parsing, byte-array concatenation, and single-byte or multi-byte `BooleanArray` conversions. A `BooleanArray` converted to one byte must contain exactly eight values.
 ## Device access
 
 `AndroidDeviceScanner` exposes device candidates as a Flow. A device node must be readable and writable by the application. Do not rely on root or globally writable permissions for production deployments; configure device ownership and SELinux policy in the firmware instead.
@@ -89,3 +111,4 @@ Push a `v2.0.0` tag to publish `serialport-2.0.0.aar` through GitHub Actions.
 ## License
 
 Repository-owned code is available under the [MIT License](LICENSE). Read the [Software Disclaimer](DISCLAIMER.md) before controlling physical equipment or using privileged device nodes.
+
