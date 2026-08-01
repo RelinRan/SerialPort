@@ -8,5 +8,8 @@ sealed interface SerialEvent {
     data class CommandSent(val id: String, val bytes: Int, val sentAt: Instant = Instant.now()) : SerialEvent
     data class CommandTimedOut(val id: String, val tag: String?, val timeoutMillis: Long) : SerialEvent
     data class ErrorRaised(val error: SerialError) : SerialEvent
+    data class Reconnecting(val attempt: Int, val delayMillis: Long) : SerialEvent
+    data object ReconnectSucceeded : SerialEvent
+    data object ReconnectExhausted : SerialEvent
 }
 

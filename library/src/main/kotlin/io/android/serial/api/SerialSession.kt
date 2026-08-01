@@ -148,6 +148,7 @@ class SerialSession(
                 }
                 if (result is CommandResult.Sent) emit(SerialEvent.CommandSent(command.id, result.bytes))
                 if (result is CommandResult.TimedOut) emit(SerialEvent.CommandTimedOut(command.id, command.tag, timeout.toMillis()))
+                if (result is CommandResult.Failed) fail(result.error)
                 if (result !is CommandResult.Sent || command.responseMatcher == null) queued.result.complete(result)
                 if (result is CommandResult.Sent && command.responseMatcher != null) {
                     pendingResponse = queued
@@ -180,7 +181,9 @@ class SerialSession(
             transport.close()
             repeat(activeConfig.reconnect.maxAttempts) { attempt ->
                 if (terminal.get()) return
-                kotlinx.coroutines.delay(activeConfig.reconnect.delayFor(attempt).toMillis())
+                val delayMillis = activeConfig.reconnect.delayFor(attempt).toMillis()
+                emit(SerialEvent.Reconnecting(attempt + 1, delayMillis))
+                kotlinx.coroutines.delay(delayMillis)
                 _state.value = SerialState.Connecting
                 emit(SerialEvent.StateChanged(SerialState.Connecting))
                 runCatching {
@@ -190,11 +193,15 @@ class SerialSession(
                     val connected = SerialState.Connected(activeConfig)
                     _state.value = connected
                     emit(SerialEvent.StateChanged(connected))
-                }.onSuccess { return }.onFailure { failure ->
+                }.onSuccess {
+                    emit(SerialEvent.ReconnectSucceeded)
+                    return
+                }.onFailure { failure ->
                     val error = SerialError.OpenFailed(failure)
                     emit(SerialEvent.ErrorRaised(error))
                 }
             }
+            emit(SerialEvent.ReconnectExhausted)
         } finally {
             reconnecting.set(false)
         }
