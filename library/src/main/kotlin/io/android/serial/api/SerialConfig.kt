@@ -7,7 +7,8 @@ data class SerialConfig(
     val baudRate: Int,
     val mode: SerialMode = SerialMode.ReadWrite,
     val readBufferSize: Int = 512,
-    val queue: QueueConfig = QueueConfig()
+    val queue: QueueConfig = QueueConfig(),
+    val reconnect: ReconnectPolicy = ReconnectPolicy()
 ) {
     init {
         require(path.isNotBlank()) { "Serial path must not be blank" }
