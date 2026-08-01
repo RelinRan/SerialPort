@@ -201,6 +201,8 @@ The workflow runs unit tests, builds the release AAR, verifies the native ABI fi
 serial-api-android-2.0.0.aar
 ```
 
+Commits pushed to `main` intentionally do not publish a release. To publish, either push a matching tag as shown above or run **Actions -> Release AAR -> Run workflow** and enter the `VERSION_NAME` value.
+
 ## License and disclaimer
 
 Code is available under the [MIT License](LICENSE). Read [DISCLAIMER.md](DISCLAIMER.md) before controlling physical equipment or privileged device nodes.
