@@ -1,0 +1,7 @@
+io.github.relinran.serialport.android.serialport-android-pngs-0 E:\Android\GitHub\SerialPort\serialport-android\build\generated\res\pngs\release
+io.github.relinran.serialport.android.serialport-android-resValues-1 E:\Android\GitHub\SerialPort\serialport-android\build\generated\res\resValues\release
+io.github.relinran.serialport.android.serialport-android-mergeReleaseResources-2 E:\Android\GitHub\SerialPort\serialport-android\build\intermediates\incremental\release\mergeReleaseResources\merged.dir
+io.github.relinran.serialport.android.serialport-android-mergeReleaseResources-3 E:\Android\GitHub\SerialPort\serialport-android\build\intermediates\incremental\release\mergeReleaseResources\stripped.dir
+io.github.relinran.serialport.android.serialport-android-release-4 E:\Android\GitHub\SerialPort\serialport-android\build\intermediates\merged_res\release\mergeReleaseResources
+io.github.relinran.serialport.android.serialport-android-main-5 E:\Android\GitHub\SerialPort\serialport-android\src\main\res
+io.github.relinran.serialport.android.serialport-android-release-6 E:\Android\GitHub\SerialPort\serialport-android\src\release\res
