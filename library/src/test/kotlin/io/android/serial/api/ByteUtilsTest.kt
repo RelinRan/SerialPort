@@ -29,9 +29,26 @@ class ByteUtilsTest {
     }
 
     @Test
+    fun convertsBitsInBothOrders() {
+        val bytes = byteArrayOf(0x81.toByte(), 0x24)
+        for (order in arrayOf(ByteOrder.BIG_ENDIAN, ByteOrder.LITTLE_ENDIAN)) {
+            assertContentEquals(bytes, bytes.toBooleanArray(order).toByteArray(order))
+        }
+        assertEquals(
+            listOf(true, false, false, false, false, false, false, true),
+            byteArrayOf(0x81.toByte()).toBooleanArray(ByteOrder.BIG_ENDIAN).toList()
+        )
+        assertEquals(
+            listOf(true, false, false, false, false, false, false, true),
+            byteArrayOf(0x81.toByte()).toBooleanArray(ByteOrder.LITTLE_ENDIAN).toList()
+        )
+    }
+
+    @Test
     fun rejectsInvalidInput() {
         assertFailsWith<IllegalArgumentException> { "ABC".hexToByteArray() }
         assertFailsWith<IllegalArgumentException> { "GG".hexToByteArray() }
         assertFailsWith<IllegalArgumentException> { byteArrayOf(1).toInt() }
+        assertFailsWith<IllegalArgumentException> { BooleanArray(7).toByteArray() }
     }
 }

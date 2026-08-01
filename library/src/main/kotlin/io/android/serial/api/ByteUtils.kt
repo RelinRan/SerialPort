@@ -28,6 +28,34 @@ public fun Int.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray =
 public fun Float.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray = ByteBuffer.allocate(Float.SIZE_BYTES).order(order).putFloat(this).array()
 public fun Double.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray = ByteBuffer.allocate(Double.SIZE_BYTES).order(order).putDouble(this).array()
 
+/** Returns one Boolean per bit, in wire order for the selected byte order. */
+public fun ByteArray.toBooleanArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): BooleanArray {
+    val result = BooleanArray(size * Byte.SIZE_BITS)
+    forEachIndexed { byteIndex, value ->
+        val byte = value.toInt() and 0xFF
+        repeat(Byte.SIZE_BITS) { bitIndex ->
+            val shift = if (order == ByteOrder.BIG_ENDIAN) 7 - bitIndex else bitIndex
+            result[byteIndex * Byte.SIZE_BITS + bitIndex] = (byte and (1 shl shift)) != 0
+        }
+    }
+    return result
+}
+
+/** Packs bits in wire order into bytes. The bit count must be byte-aligned. */
+public fun BooleanArray.toByteArray(order: ByteOrder = ByteOrder.BIG_ENDIAN): ByteArray {
+    require(size % Byte.SIZE_BITS == 0) { "Boolean array length must be a multiple of 8" }
+    return ByteArray(size / Byte.SIZE_BITS) { byteIndex ->
+        var value = 0
+        repeat(Byte.SIZE_BITS) { bitIndex ->
+            if (this[byteIndex * Byte.SIZE_BITS + bitIndex]) {
+                val shift = if (order == ByteOrder.BIG_ENDIAN) 7 - bitIndex else bitIndex
+                value = value or (1 shl shift)
+            }
+        }
+        value.toByte()
+    }
+}
+
 public fun ByteArray.concat(vararg arrays: ByteArray): ByteArray = this + arrays.fold(ByteArray(0)) { result, array -> result + array }
 
 private fun ByteArray.buffer(offset: Int, length: Int, order: ByteOrder): ByteBuffer {
